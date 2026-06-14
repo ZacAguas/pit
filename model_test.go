@@ -37,7 +37,7 @@ func update(t *testing.T, m model, msg tea.Msg) model {
 }
 
 func TestHOpensHistory(t *testing.T) {
-	m := newModel()
+	m := initialModel()
 
 	// send an H keypress, should switch to history view
 	m = update(t, m, press("h"))
@@ -47,7 +47,7 @@ func TestHOpensHistory(t *testing.T) {
 }
 
 func TestQInHistoryReturnsToToday(t *testing.T) {
-	m := newModel()
+	m := initialModel()
 	m.view = historyView // move to history view
 
 	// send a Q keypress, should switch to today view
@@ -58,10 +58,56 @@ func TestQInHistoryReturnsToToday(t *testing.T) {
 }
 
 func TestQQuitsInNormalMode(t *testing.T) {
-	m := newModel()
+	m := initialModel()
 
 	_, cmd := m.Update(press("q"))
 	if cmd == nil {
 		t.Fatal("expected quit command, got nil")
+	}
+}
+
+func TestIEntersEditMode(t *testing.T) {
+	m := initialModel()
+
+	m = update(t, m, press("i"))
+	if m.mode != editMode {
+		t.Fatalf("expected %v, got %v", editMode, m.mode)
+	}
+}
+
+func TestEscEntersNormalMode(t *testing.T) {
+	m := initialModel()
+
+	// enter edit mode
+	m = update(t, m, press("i"))
+
+	m = update(t, m, press("esc"))
+	if m.mode != normalMode {
+		t.Fatalf("expected %v, got %v", normalMode, m.mode)
+	}
+}
+
+func TestQDoesNotQuitInEditMode(t *testing.T) {
+	m := initialModel()
+
+	m.mode = editMode
+	m.focus = didField
+	m.did.Focus()
+
+	next, cmd := m.Update(press("q"))
+	gotModel, ok := next.(model)
+	if !ok {
+		t.Fatalf("expected model, got %T", next)
+	}
+
+	// no command - no quit was issued
+	if cmd != nil {
+		if _, isQuit := cmd().(tea.QuitMsg); isQuit {
+			t.Fatal("expected 'q' not to quit but a tea.Quit command was returned")
+		}
+	}
+
+	if got := gotModel.did.Value(); got != "q" {
+		t.Fatalf("expected q to be inserted into 'did' field, got %q", got)
 	}
 }

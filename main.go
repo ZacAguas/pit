@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	m := newModel()
+	m := initialModel()
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		log.Fatalf("could not start program: %v", err)

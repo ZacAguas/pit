@@ -1,30 +1,68 @@
 package main
 
 import (
+	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
 )
 
-type viewState uint // the page to show
+type viewState int // the page to show
 const (
-	todayView   = viewState(iota) // default state - showing yesterday, blocked, today panes
-	historyView                   // history view, showing a list of previous entries
+	todayView   viewState = iota // default state - showing yesterday, blocked, today panes
+	historyView                  // history view, showing a list of previous entries
 )
 
-type inputMode uint // normal (navigation) or edit (text entry) - only relevant in todayView
+type inputMode int // normal (navigation) or edit (text entry) - only relevant in todayView
 const (
-	normalMode = inputMode(iota)
+	normalMode inputMode = iota
 	editMode
+)
+
+type fieldFocus int
+
+const (
+	didField fieldFocus = iota
+	blockedField
+	tomorrowField
 )
 
 type model struct {
 	view viewState
 	mode inputMode
+
+	did      textarea.Model
+	blocked  textarea.Model
+	tomorrow textarea.Model
+
+	focus fieldFocus
 }
 
-func newModel() model {
+func newTextArea(placeholder string) textarea.Model {
+	t := textarea.New()
+
+	// TODO: check these settings
+	t.Placeholder = placeholder
+	t.Prompt = ""
+	t.ShowLineNumbers = false
+	t.SetStyles(textarea.DefaultDarkStyles())
+	t.SetWidth(80)
+	t.SetHeight(5)
+
+	return t
+}
+
+func initialModel() model {
+	did := newTextArea("What did you do yesterday?")
+	blocked := newTextArea("Is anything blocking you?")
+	tomorrow := newTextArea("What will you do today?")
+
 	return model{
 		view: todayView,
 		mode: normalMode,
+
+		did:      did,
+		blocked:  blocked,
+		tomorrow: tomorrow,
+		focus:    didField,
 	}
 }
 
@@ -69,6 +107,53 @@ func (m model) updateToday(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m model) applyTextAreaFocus() (model, tea.Cmd) {
+	m.did.Blur()
+	m.blocked.Blur()
+	m.tomorrow.Blur()
+
+	// only apply text area focus when in edit mode
+	if m.mode != editMode {
+		return m, nil
+	}
+
+	switch m.focus {
+	case didField:
+		return m, m.did.Focus()
+	case blockedField:
+		return m, m.blocked.Focus()
+	case tomorrowField:
+		return m, m.tomorrow.Focus()
+	}
+	return m, nil
+}
+
+// did -> blocked -> tomorrow -> did
+func (m model) focusNextField() model {
+	switch m.focus {
+	case didField:
+		m.focus = blockedField
+	case blockedField:
+		m.focus = tomorrowField
+	case tomorrowField:
+		m.focus = didField
+	}
+	return m
+}
+
+// did <- blocked <- tomorrow <- did
+func (m model) focusPrevField() model {
+	switch m.focus {
+	case didField:
+		m.focus = tomorrowField
+	case blockedField:
+		m.focus = didField
+	case tomorrowField:
+		m.focus = blockedField
+	}
+	return m
+}
+
 // Normal mode owns navigation and app commands
 func (m model) updateTodayNormal(key tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch key.String() {
@@ -78,17 +163,44 @@ func (m model) updateTodayNormal(key tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.view = historyView
 	case "i", "enter":
 		m.mode = editMode
+		return m.applyTextAreaFocus()
+	// navigation
+	case "j", "down", "tab":
+		m = m.focusNextField()
+	case "k", "up", "shift+tab":
+		m = m.focusPrevField()
+	case "1":
+		m.focus = didField
+	case "2":
+		m.focus = blockedField
+	case "3":
+		m.focus = tomorrowField
+
 	}
 	return m, nil
 }
 
 // Edit mode only handles escape, otherwise keys go to the focused text area
-func (m model) updateTodayEdit(key tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	switch key.String() {
-	case "esc": // no 'q' as to not swallow text keypresses when editing
+func (m model) updateTodayEdit(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// if a keypress and "esc", change to normal mode and blur text area
+	key, ok := msg.(tea.KeyPressMsg)
+	if ok && key.String() == "esc" {
 		m.mode = normalMode
+		return m.applyTextAreaFocus()
 	}
-	return m, nil
+
+	// reroute msg to focused text area
+	var cmd tea.Cmd
+	switch m.focus {
+	case didField:
+		m.did, cmd = m.did.Update(msg)
+	case blockedField:
+		m.blocked, cmd = m.blocked.Update(msg)
+	case tomorrowField:
+		m.tomorrow, cmd = m.tomorrow.Update(msg)
+	}
+
+	return m, cmd
 }
 
 func (m model) updateHistory(msg tea.Msg) (tea.Model, tea.Cmd) {
