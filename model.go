@@ -54,16 +54,39 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) updateToday(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyPressMsg:
-		switch msg.String() {
-		case "h":
-			m.view = historyView
-		case "q", "esc":
-			if m.mode == normalMode {
-				return m, tea.Quit // only accept q/esc as quit in normal mode
-			}
-		}
+	key, ok := msg.(tea.KeyPressMsg)
+	if !ok {
+		return m, nil
+	}
+
+	switch m.mode {
+	case normalMode:
+		return m.updateTodayNormal(key)
+	case editMode:
+		return m.updateTodayEdit(key)
+	}
+
+	return m, nil
+}
+
+// Normal mode owns navigation and app commands
+func (m model) updateTodayNormal(key tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch key.String() {
+	case "q", "esc":
+		return m, tea.Quit
+	case "h":
+		m.view = historyView
+	case "i", "enter":
+		m.mode = editMode
+	}
+	return m, nil
+}
+
+// Edit mode only handles escape, otherwise keys go to the focused text area
+func (m model) updateTodayEdit(key tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch key.String() {
+	case "esc": // no 'q' as to not swallow text keypresses when editing
+		m.mode = normalMode
 	}
 	return m, nil
 }

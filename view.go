@@ -20,7 +20,16 @@ func (m model) View() tea.View {
 
 // The main view when launching the app
 func (m model) viewToday() string {
-	return "pane view\n\n"
+	s := ""
+	switch m.mode {
+	case normalMode:
+		s += "NORMAL"
+	case editMode:
+		s += "EDIT"
+	}
+	s += " mode\n"
+
+	return s + "pane view\n\n"
 }
 
 func (m model) viewHistory() string {
