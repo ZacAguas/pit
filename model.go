@@ -34,6 +34,8 @@ type model struct {
 	tomorrow textarea.Model
 
 	focus fieldFocus
+
+	width, height int
 }
 
 func newTextArea(placeholder string) textarea.Model {
@@ -70,10 +72,28 @@ func (m model) Init() tea.Cmd {
 	return nil
 }
 
+func (m model) resizeTextAreas() model {
+	const min = 20
+	const textareaHorizontalFrame = 4 // left/right border + left/right padding
+
+	width := m.width - textareaHorizontalFrame // could use focusedPanel.GetHorizontalFrameSize() but that couples model to styling
+	if width < min {
+		width = min
+	}
+	m.did.SetWidth(width)
+	m.blocked.SetWidth(width)
+	m.tomorrow.SetWidth(width)
+	return m
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// global msg handlers
-	// TODO: window resize handler
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		m = m.resizeTextAreas()
+		return m, nil
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c": // uncontextual exit on ctrl+c
@@ -92,19 +112,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) updateToday(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// check edit mode first, since it takes any message, not just keypress messages
+	if m.mode == editMode {
+		return m.updateTodayEdit(msg)
+	}
+
 	key, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return m, nil
 	}
 
-	switch m.mode {
-	case normalMode:
-		return m.updateTodayNormal(key)
-	case editMode:
-		return m.updateTodayEdit(key)
-	}
-
-	return m, nil
+	return m.updateTodayNormal(key)
 }
 
 func (m model) applyTextAreaFocus() (model, tea.Cmd) {
@@ -180,6 +198,21 @@ func (m model) updateTodayNormal(key tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// Reroute msg to focused text area
+func (m model) updateFocusedTextArea(msg tea.Msg) (model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	switch m.focus {
+	case didField:
+		m.did, cmd = m.did.Update(msg)
+	case blockedField:
+		m.blocked, cmd = m.blocked.Update(msg)
+	case tomorrowField:
+		m.tomorrow, cmd = m.tomorrow.Update(msg)
+	}
+	return m, cmd
+}
+
 // Edit mode only handles escape, otherwise keys go to the focused text area
 func (m model) updateTodayEdit(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// if a keypress and "esc", change to normal mode and blur text area
@@ -189,18 +222,7 @@ func (m model) updateTodayEdit(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.applyTextAreaFocus()
 	}
 
-	// reroute msg to focused text area
-	var cmd tea.Cmd
-	switch m.focus {
-	case didField:
-		m.did, cmd = m.did.Update(msg)
-	case blockedField:
-		m.blocked, cmd = m.blocked.Update(msg)
-	case tomorrowField:
-		m.tomorrow, cmd = m.tomorrow.Update(msg)
-	}
-
-	return m, cmd
+	return m.updateFocusedTextArea(msg)
 }
 
 func (m model) updateHistory(msg tea.Msg) (tea.Model, tea.Cmd) {

@@ -22,8 +22,7 @@ func (m model) View() tea.View {
 	}
 
 	v := tea.NewView(s)
-	// TODO: make fullscreen (need to handle width/height in update)
-	// v.AltScreen = true // Fullscreen
+	v.AltScreen = true // Fullscreen
 	return v
 }
 
@@ -50,7 +49,7 @@ func (m model) viewToday() string {
 	s += m.renderField(blockedField, "[2] Blocked", m.blocked) + "\n"
 	s += m.renderField(tomorrowField, "[3] Tomorrow", m.tomorrow) + "\n"
 
-	return s + "pane view\n\n"
+	return s
 }
 
 func (m model) viewHistory() string {

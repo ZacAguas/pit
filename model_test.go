@@ -111,3 +111,60 @@ func TestQDoesNotQuitInEditMode(t *testing.T) {
 		t.Fatalf("expected q to be inserted into 'did' field, got %q", got)
 	}
 }
+
+func TestNextFieldNavigationCycles(t *testing.T) {
+	m := initialModel()
+
+	m = update(t, m, press("j"))
+	if m.focus != blockedField {
+		t.Fatalf("expected blockedField focused, got %v", m.focus)
+	}
+
+	m = update(t, m, press("j"))
+	if m.focus != tomorrowField {
+		t.Fatalf("expected tomorrowField focused, got %v", m.focus)
+	}
+
+	m = update(t, m, press("j"))
+	if m.focus != didField {
+		t.Fatalf("expected didField focused, got %v", m.focus)
+	}
+}
+
+func TestPreviousFieldNavigationCycles(t *testing.T) {
+	m := initialModel()
+
+	m = update(t, m, press("k"))
+	if m.focus != tomorrowField {
+		t.Fatalf("expected tomorrowField focused, got %v", m.focus)
+	}
+
+	m = update(t, m, press("k"))
+	if m.focus != blockedField {
+		t.Fatalf("expected blockedField focused, got %v", m.focus)
+	}
+
+	m = update(t, m, press("k"))
+	if m.focus != didField {
+		t.Fatalf("expected didField focused, got %v", m.focus)
+	}
+}
+
+func TestNumberKeysJumpToFields(t *testing.T) {
+	m := initialModel()
+
+	m = update(t, m, press("2"))
+	if m.focus != blockedField {
+		t.Fatalf("expected blockedField focused, got %v", m.focus)
+	}
+
+	m = update(t, m, press("3"))
+	if m.focus != tomorrowField {
+		t.Fatalf("expected tomorrowField focused, got %v", m.focus)
+	}
+
+	m = update(t, m, press("1"))
+	if m.focus != didField {
+		t.Fatalf("expected didField focused, got %v", m.focus)
+	}
+}
