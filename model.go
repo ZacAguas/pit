@@ -38,6 +38,15 @@ type model struct {
 	width, height int
 }
 
+func (m model) currentEntry() entry {
+	return entry{
+		Date:     "", // filled in later
+		Did:      m.did.Value(),
+		Blocked:  m.blocked.Value(),
+		Tomorrow: m.tomorrow.Value(),
+	}
+}
+
 func newTextArea(placeholder string) textarea.Model {
 	t := textarea.New()
 

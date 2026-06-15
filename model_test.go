@@ -168,3 +168,25 @@ func TestNumberKeysJumpToFields(t *testing.T) {
 		t.Fatalf("expected didField focused, got %v", m.focus)
 	}
 }
+
+func TestCurrentEntryUsesTextFields(t *testing.T) {
+	m := initialModel()
+
+	const did = "did work"
+	const blocked = "blocked thing"
+	const tomorrow = "next thing"
+	m.did.SetValue(did)
+	m.blocked.SetValue(blocked)
+	m.tomorrow.SetValue(tomorrow)
+
+	got := m.currentEntry()
+	if got.Did != did {
+		t.Fatalf("expected %q got %q", did, got.Did)
+	}
+	if got.Blocked != blocked {
+		t.Fatalf("expected %q got %q", blocked, got.Blocked)
+	}
+	if got.Tomorrow != tomorrow {
+		t.Fatalf("expected %q got %q", tomorrow, got.Tomorrow)
+	}
+}
