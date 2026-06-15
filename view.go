@@ -13,7 +13,7 @@ var (
 )
 
 func (m model) View() tea.View {
-	s := "pit\n\n"
+	s := ""
 	switch m.view {
 	case todayView:
 		s += m.viewToday()
