@@ -18,23 +18,28 @@ func main() {
 			log.Fatalln("fatal:", err)
 		}
 		defer f.Close()
-		getDataPath()
 	}
 
-	todayEntry, err := getTodayEntry()
+	dataDir, err := getDataPath()
+	if err != nil {
+		log.Fatalf("could not get data path: %v", err)
+	}
+
+	todayEntry, err := getTodayEntry(dataDir)
 	if err != nil {
 		log.Printf("could not load today entry: %v", err)
 	}
-	m := initialModel(todayEntry)
+
+	m := initialModel(dataDir, todayEntry)
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		log.Fatalf("could not start program: %v", err)
 	}
 }
 
-func getTodayEntry() (*entry, error) {
+func getTodayEntry(dataDir string) (*entry, error) {
 	today := time.Now().Format(YYYY_MM_DD)
-	filePath := entryFilePath(getDataPath(), today)
+	filePath := entryFilePath(dataDir, today)
 	e, err := loadEntry(filePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {

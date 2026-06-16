@@ -28,6 +28,8 @@ const (
 )
 
 type model struct {
+	dataDir string
+
 	view viewState
 	mode inputMode
 
@@ -67,7 +69,7 @@ func newTextArea(placeholder string) textarea.Model {
 	return t
 }
 
-func initialModel(existing *entry) model {
+func initialModel(dataDir string, existing *entry) model {
 	did := newTextArea("What did you do yesterday?")
 	blocked := newTextArea("Is anything blocking you?")
 	tomorrow := newTextArea("What will you do today?")
@@ -80,6 +82,8 @@ func initialModel(existing *entry) model {
 		tomorrow.SetValue(existing.Tomorrow)
 	}
 	return model{
+		dataDir: dataDir,
+
 		view: todayView,
 		mode: normalMode,
 
@@ -219,7 +223,8 @@ func (m model) updateTodayNormal(key tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.mode = editMode
 		return m.applyTextAreaFocus()
 	case "s":
-		return m, saveEntryCmd(getDataPath(), m.currentEntry())
+		// message set/cleared in Update saveEntryMsg handler
+		return m, saveEntryCmd(m.dataDir, m.currentEntry())
 	case "c":
 		m.message = "Copied to clipboard"
 		return m, tea.Batch(

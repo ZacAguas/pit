@@ -14,15 +14,15 @@ func entryFilePath(dir string, date string) string {
 }
 
 // Return an XDG compliant path for storing entries
-func getDataPath() string {
-	// TODO: use XDG_DATA_HOME
+func getDataPath() (string, error) {
+	baseDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
 
-	// HACK: using temp dir for now
-	baseDir := os.TempDir()
-
-	dir := filepath.Join(baseDir, "pit")
+	dir := filepath.Join(baseDir, "pit", "entries")
 	log.Printf("Using data directory %q", dir)
-	return dir
+	return dir, nil
 }
 
 // Called in saveEntryCmd as it is a side-effect

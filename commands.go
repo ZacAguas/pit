@@ -10,10 +10,10 @@ type saveEntryMsg struct {
 	err error
 }
 
-func saveEntryCmd(dir string, e entry) tea.Cmd {
+func saveEntryCmd(path string, e entry) tea.Cmd {
 	return func() tea.Msg {
 		return saveEntryMsg{
-			err: saveEntry(dir, e),
+			err: saveEntry(path, e),
 		}
 	}
 }
