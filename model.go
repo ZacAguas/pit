@@ -67,18 +67,25 @@ func newTextArea(placeholder string) textarea.Model {
 	return t
 }
 
-func initialModel() model {
+func initialModel(existing *entry) model {
 	did := newTextArea("What did you do yesterday?")
 	blocked := newTextArea("Is anything blocking you?")
 	tomorrow := newTextArea("What will you do today?")
 
+	today := time.Now().Format(YYYY_MM_DD)
+	if existing != nil {
+		today = existing.Date
+		did.SetValue(existing.Did)
+		blocked.SetValue(existing.Blocked)
+		tomorrow.SetValue(existing.Tomorrow)
+	}
 	return model{
 		view: todayView,
 		mode: normalMode,
 
 		message: "",
 
-		date: time.Now().Format("2006-01-02"),
+		date: today,
 
 		did:      did,
 		blocked:  blocked,

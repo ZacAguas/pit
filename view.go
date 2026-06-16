@@ -10,6 +10,7 @@ var (
 	modeStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("48")).Faint(true)
 	focusedPanel = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("48")).Padding(0, 1)
 	dimPanel     = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("240")).Padding(0, 1)
+	messageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("104"))
 	footerStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("99")).Faint(true)
 )
 
@@ -51,7 +52,7 @@ func (m model) viewToday() string {
 	}
 	s += " mode\n\n"
 
-	s += m.message
+	s += messageStyle.Render(m.message)
 
 	s += "\n\n" + footerStyle.Render("Move: j/k/tab | History: h | Save: s | Copy: c")
 	return s

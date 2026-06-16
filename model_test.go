@@ -38,7 +38,7 @@ func update(t *testing.T, m model, msg tea.Msg) model {
 }
 
 func TestHOpensHistory(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 
 	// send an H keypress, should switch to history view
 	m = update(t, m, press("h"))
@@ -48,7 +48,7 @@ func TestHOpensHistory(t *testing.T) {
 }
 
 func TestQInHistoryReturnsToToday(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 	m.view = historyView // move to history view
 
 	// send a Q keypress, should switch to today view
@@ -59,7 +59,7 @@ func TestQInHistoryReturnsToToday(t *testing.T) {
 }
 
 func TestQQuitsInNormalMode(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 
 	_, cmd := m.Update(press("q"))
 	if cmd == nil {
@@ -68,7 +68,7 @@ func TestQQuitsInNormalMode(t *testing.T) {
 }
 
 func TestIEntersEditMode(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 
 	m = update(t, m, press("i"))
 	if m.mode != editMode {
@@ -77,7 +77,7 @@ func TestIEntersEditMode(t *testing.T) {
 }
 
 func TestEscEntersNormalMode(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 
 	// enter edit mode
 	m = update(t, m, press("i"))
@@ -89,7 +89,7 @@ func TestEscEntersNormalMode(t *testing.T) {
 }
 
 func TestQDoesNotQuitInEditMode(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 
 	m.mode = editMode
 	m.focus = didField
@@ -114,7 +114,7 @@ func TestQDoesNotQuitInEditMode(t *testing.T) {
 }
 
 func TestNextFieldNavigationCycles(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 
 	m = update(t, m, press("j"))
 	if m.focus != blockedField {
@@ -133,7 +133,7 @@ func TestNextFieldNavigationCycles(t *testing.T) {
 }
 
 func TestPreviousFieldNavigationCycles(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 
 	m = update(t, m, press("k"))
 	if m.focus != tomorrowField {
@@ -152,7 +152,7 @@ func TestPreviousFieldNavigationCycles(t *testing.T) {
 }
 
 func TestNumberKeysJumpToFields(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 
 	m = update(t, m, press("2"))
 	if m.focus != blockedField {
@@ -171,7 +171,7 @@ func TestNumberKeysJumpToFields(t *testing.T) {
 }
 
 func TestCurrentEntryUsesTextFields(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 
 	const did = "did work"
 	const blocked = "blocked thing"
@@ -193,7 +193,7 @@ func TestCurrentEntryUsesTextFields(t *testing.T) {
 }
 
 func TestCCopiesCurrentEntryShowsMessage(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 
 	next, cmd := m.Update(press("c"))
 	got, ok := next.(model)
@@ -211,7 +211,7 @@ func TestCCopiesCurrentEntryShowsMessage(t *testing.T) {
 }
 
 func TestClearMessageClearsMessage(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 	m.message = "Copied to clipboard"
 
 	next, _ := m.Update(clearMessageMsg{})
@@ -226,7 +226,7 @@ func TestClearMessageClearsMessage(t *testing.T) {
 }
 
 func TestSaveEntrySuccessShowsSavedMessage(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 
 	next, _ := m.Update(saveEntryMsg{err: nil})
 	got := next.(model)
@@ -237,7 +237,7 @@ func TestSaveEntrySuccessShowsSavedMessage(t *testing.T) {
 }
 
 func TestSaveEntryErrorShowsFailureMessage(t *testing.T) {
-	m := initialModel()
+	m := initialModel(nil)
 
 	next, _ := m.Update(saveEntryMsg{err: errors.New("permission denied")})
 	got := next.(model)

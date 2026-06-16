@@ -33,7 +33,7 @@ func formatMarkdown(e entry) string {
 
 // Assuming YYYY-MM-DD
 func formatDateForHeading(date string) string {
-	parsedTime, err := time.Parse("2006-01-02", date)
+	parsedTime, err := time.Parse(YYYY_MM_DD, date)
 	if err != nil {
 		log.Printf("error parsing time: %v", err)
 		return date
