@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
 )
@@ -29,6 +31,10 @@ type model struct {
 	view viewState
 	mode inputMode
 
+	message string
+
+	date string // YYYY-MM-DD
+
 	did      textarea.Model
 	blocked  textarea.Model
 	tomorrow textarea.Model
@@ -40,7 +46,7 @@ type model struct {
 
 func (m model) currentEntry() entry {
 	return entry{
-		Date:     "", // filled in later
+		Date:     m.date,
 		Did:      m.did.Value(),
 		Blocked:  m.blocked.Value(),
 		Tomorrow: m.tomorrow.Value(),
@@ -69,6 +75,10 @@ func initialModel() model {
 	return model{
 		view: todayView,
 		mode: normalMode,
+
+		message: "",
+
+		date: time.Now().Format("2006-01-02"),
 
 		did:      did,
 		blocked:  blocked,
@@ -108,6 +118,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c": // uncontextual exit on ctrl+c
 			return m, tea.Quit
 		}
+	case saveEntryMsg:
+		if msg.err != nil {
+			m.message = "Save failed: " + msg.err.Error()
+		} else {
+			m.message = "Saved"
+		}
+		return m, clearMessageAfter(3)
+	case clearMessageMsg:
+		m.message = ""
+		return m, nil
 	}
 
 	// run viewState-specific update functions
@@ -191,6 +211,15 @@ func (m model) updateTodayNormal(key tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "i", "enter":
 		m.mode = editMode
 		return m.applyTextAreaFocus()
+	case "s":
+		cmd := saveEntryCmd(entryFilePath(getDataPath(), m.date), m.currentEntry())
+		return m, cmd
+	case "c":
+		m.message = "Copied to clipboard"
+		return m, tea.Batch(
+			tea.SetClipboard(formatMarkdown(m.currentEntry())),
+			clearMessageAfter(3),
+		)
 	// navigation
 	case "j", "down", "tab":
 		m = m.focusNextField()

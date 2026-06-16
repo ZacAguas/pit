@@ -25,6 +25,7 @@ func getDataPath() string {
 	return dir
 }
 
+// Called in saveEntryCmd as it is a side-effect
 func saveEntry(dir string, e entry) error {
 	data, err := json.Marshal(e)
 	if err != nil {

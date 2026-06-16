@@ -190,3 +190,36 @@ func TestCurrentEntryUsesTextFields(t *testing.T) {
 		t.Fatalf("expected %q got %q", tomorrow, got.Tomorrow)
 	}
 }
+
+func TestCCopiesCurrentEntryShowsMessage(t *testing.T) {
+	m := initialModel()
+
+	next, cmd := m.Update(press("c"))
+	got, ok := next.(model)
+	if !ok {
+		t.Fatalf("expected model, got %T", next)
+	}
+
+	if got.message != "Copied to clipboard" {
+		t.Fatalf("expected copy message, got %q", got.message)
+	}
+
+	if cmd == nil {
+		t.Fatal("expected command, got nil")
+	}
+}
+
+func TestClearMessageClearsMessage(t *testing.T) {
+	m := initialModel()
+	m.message = "Copied to clipboard"
+
+	next, _ := m.Update(clearMessageMsg{})
+	got, ok := next.(model)
+	if !ok {
+		t.Fatalf("expected model, got %T", next)
+	}
+
+	if got.message != "" {
+		t.Fatalf("expected message to be cleared, got %q", got.message)
+	}
+}

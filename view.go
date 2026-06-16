@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	modeStyle    = lipgloss.NewStyle().Foreground(lipgloss.Green).Faint(true)
+	modeStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("48")).Faint(true)
 	focusedPanel = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("48")).Padding(0, 1)
 	dimPanel     = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("240")).Padding(0, 1)
+	footerStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("99")).Faint(true)
 )
 
 func (m model) View() tea.View {
@@ -37,18 +38,22 @@ func (m model) renderField(field fieldFocus, label string, t textarea.Model) str
 // The main view when launching the app
 func (m model) viewToday() string {
 	s := ""
+
+	s += m.renderField(didField, "[1] Yesterday", m.did) + "\n"
+	s += m.renderField(blockedField, "[2] Blocked", m.blocked) + "\n"
+	s += m.renderField(tomorrowField, "[3] Tomorrow", m.tomorrow) + "\n"
+
 	switch m.mode {
 	case normalMode:
 		s += modeStyle.Render("NORMAL")
 	case editMode:
 		s += modeStyle.Render("EDIT")
 	}
-	s += " mode\n"
+	s += " mode\n\n"
 
-	s += m.renderField(didField, "[1] Yesterday", m.did) + "\n"
-	s += m.renderField(blockedField, "[2] Blocked", m.blocked) + "\n"
-	s += m.renderField(tomorrowField, "[3] Tomorrow", m.tomorrow) + "\n"
+	s += m.message
 
+	s += "\n\n" + footerStyle.Render("Move: j/k/tab | History: h | Save: s | Copy: c")
 	return s
 }
 
