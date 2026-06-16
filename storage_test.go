@@ -1,7 +1,6 @@
 package main
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -25,7 +24,7 @@ func TestSaveLoadEntry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(e, got) {
+	if e != got {
 		t.Fatalf("expected %#v, got %#v", e, got)
 	}
 }

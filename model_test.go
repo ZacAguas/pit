@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -221,5 +222,28 @@ func TestClearMessageClearsMessage(t *testing.T) {
 
 	if got.message != "" {
 		t.Fatalf("expected message to be cleared, got %q", got.message)
+	}
+}
+
+func TestSaveEntrySuccessShowsSavedMessage(t *testing.T) {
+	m := initialModel()
+
+	next, _ := m.Update(saveEntryMsg{err: nil})
+	got := next.(model)
+
+	if got.message != "Saved" {
+		t.Fatalf("expected Saved message, got %q", got.message)
+	}
+}
+
+func TestSaveEntryErrorShowsFailureMessage(t *testing.T) {
+	m := initialModel()
+
+	next, _ := m.Update(saveEntryMsg{err: errors.New("permission denied")})
+	got := next.(model)
+
+	want := "Save failed: permission denied"
+	if got.message != want {
+		t.Fatalf("expected %q, got %q", want, got.message)
 	}
 }

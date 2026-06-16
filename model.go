@@ -212,8 +212,7 @@ func (m model) updateTodayNormal(key tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.mode = editMode
 		return m.applyTextAreaFocus()
 	case "s":
-		cmd := saveEntryCmd(entryFilePath(getDataPath(), m.date), m.currentEntry())
-		return m, cmd
+		return m, saveEntryCmd(getDataPath(), m.currentEntry())
 	case "c":
 		m.message = "Copied to clipboard"
 		return m, tea.Batch(
