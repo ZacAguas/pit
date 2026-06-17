@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 )
 
 func entryFilePath(dir string, date string) string {
@@ -54,4 +56,32 @@ func loadEntry(filePath string) (entry, error) {
 	err = json.Unmarshal(data, &e)
 
 	return e, err
+}
+
+func getAllEntries(dataDir string) ([]entry, error) {
+	dirEntries, err := os.ReadDir(dataDir)
+	if err != nil {
+		return nil, err
+	}
+
+	var entries []entry
+	for _, dirEntry := range dirEntries {
+		if dirEntry.IsDir() || !strings.HasSuffix(dirEntry.Name(), ".json") {
+			continue
+		}
+
+		e, err := loadEntry(filepath.Join(dataDir, dirEntry.Name()))
+		if err != nil {
+			log.Printf("failed to load %q: %v", dirEntry.Name(), err)
+			continue
+		}
+
+		entries = append(entries, e)
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Date > entries[j].Date
+	})
+
+	return entries, nil
 }

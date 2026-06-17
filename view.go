@@ -59,5 +59,7 @@ func (m model) viewToday() string {
 }
 
 func (m model) viewHistory() string {
-	return "history view\n\n"
+	s := ""
+	s += m.history.View()
+	return s
 }

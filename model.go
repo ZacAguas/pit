@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 
+	"charm.land/bubbles/v2/list"
 	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
 )
@@ -40,6 +41,7 @@ type model struct {
 	did      textarea.Model
 	blocked  textarea.Model
 	tomorrow textarea.Model
+	history  list.Model
 
 	focus fieldFocus
 
@@ -69,10 +71,18 @@ func newTextArea(placeholder string) textarea.Model {
 	return t
 }
 
+func newHistoryList(entries []entry) list.Model {
+	l := list.New(entriesToListItems(entries), list.NewDefaultDelegate(), 0, 0)
+	l.Title = "History"
+	return l
+}
+
 func initialModel(dataDir string, existing *entry) model {
 	did := newTextArea("What did you do yesterday?")
 	blocked := newTextArea("Is anything blocking you?")
 	tomorrow := newTextArea("What will you do today?")
+
+	history := newHistoryList(nil)
 
 	today := time.Now().Format(YYYY_MM_DD)
 	if existing != nil {
@@ -94,6 +104,7 @@ func initialModel(dataDir string, existing *entry) model {
 		did:      did,
 		blocked:  blocked,
 		tomorrow: tomorrow,
+		history:  history,
 		focus:    didField,
 	}
 }
@@ -116,6 +127,19 @@ func (m model) resizeTextAreas() model {
 	return m
 }
 
+func (m model) resizeList() model {
+	const min = 20
+	const listHorizontalFrame = 4
+	width := m.width - listHorizontalFrame
+	if width < min {
+		width = min
+	}
+	height := 20
+
+	m.history.SetSize(width, height)
+	return m
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// global msg handlers
 	switch msg := msg.(type) {
@@ -123,6 +147,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m = m.resizeTextAreas()
+		m = m.resizeList()
 		return m, nil
 	case tea.KeyPressMsg:
 		switch msg.String() {
@@ -139,6 +164,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case clearMessageMsg:
 		m.message = ""
 		return m, nil
+	case loadEntriesMsg:
+		if msg.err != nil {
+			m.message = "Failed to get History"
+			m.view = todayView
+			return m, clearMessageAfter(3)
+		}
+		return m, m.history.SetItems(entriesToListItems(msg.entries))
 	}
 
 	// run viewState-specific update functions
@@ -219,6 +251,7 @@ func (m model) updateTodayNormal(key tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case "h":
 		m.view = historyView
+		return m, loadEntriesCmd(m.dataDir)
 	case "i", "enter":
 		m.mode = editMode
 		return m.applyTextAreaFocus()
@@ -278,9 +311,14 @@ func (m model) updateHistory(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "q", "esc": // q/esc goes back to today view
+		case "q": // q goes back to today view
 			m.view = todayView
+			return m, nil
 		}
 	}
-	return m, nil
+	// pass unhandled message to list
+	var cmd tea.Cmd
+	m.history, cmd = m.history.Update(msg)
+
+	return m, cmd
 }
