@@ -179,6 +179,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m = m.resizeTextAreas()
 		m = m.resizeList()
 		m = m.resizeViewport()
+		if m.view == detailView {
+			m, _ = m.renderSelectedEntry()
+		}
 		return m, nil
 	case tea.KeyPressMsg:
 		switch msg.String() {
@@ -348,20 +351,12 @@ func (m model) updateHistory(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.view = todayView
 			return m, nil
 		case "enter":
-			item := m.history.SelectedItem()
-			e, ok := item.(entry)
-			if !ok {
-				return m, nil
+			var ok bool
+			m, ok = m.renderSelectedEntry()
+			if ok {
+				m.detail.GotoTop()
+				m.view = detailView
 			}
-			rendered, err := renderEntryMarkdown(e)
-			if err != nil {
-				m.message = "Could not render entry"
-				return m, clearMessageAfter(3)
-			}
-
-			m.detail.SetContent(rendered)
-			m.detail.GotoTop()
-			m.view = detailView
 			return m, nil
 		}
 	}
@@ -370,6 +365,23 @@ func (m model) updateHistory(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.history, cmd = m.history.Update(msg)
 
 	return m, cmd
+}
+
+func (m model) renderSelectedEntry() (model, bool) {
+	item := m.history.SelectedItem()
+	e, ok := item.(entry)
+	if !ok {
+		return m, false
+	}
+
+	rendered, err := renderEntryMarkdown(e, m.detail.Width())
+	if err != nil {
+		m.message = "Could not render entry"
+		return m, false
+	}
+
+	m.detail.SetContent(rendered)
+	return m, true
 }
 
 func (m model) updateDetail(msg tea.Msg) (tea.Model, tea.Cmd) {

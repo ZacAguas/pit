@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -261,6 +262,7 @@ func TestSaveEntryErrorShowsFailureMessage(t *testing.T) {
 func TestEnterInHistoryWithSelectedItemOpensDetail(t *testing.T) {
 	m := initialModel(t.TempDir(), nil)
 	m.view = historyView
+	m = update(t, m, tea.WindowSizeMsg{Width: 80, Height: 24})
 	m.history.SetItems(entriesToListItems([]entry{
 		{Date: "2026-06-17", Did: "did work"},
 	}))
@@ -268,6 +270,9 @@ func TestEnterInHistoryWithSelectedItemOpensDetail(t *testing.T) {
 	m = update(t, m, press("enter"))
 	if m.view != detailView {
 		t.Fatalf("expected %v, got %v", detailView, m.view)
+	}
+	if got := m.detail.View(); !strings.Contains(got, "Standup") || !strings.Contains(got, "did") || !strings.Contains(got, "work") {
+		t.Fatalf("expected detail viewport to contain rendered entry, got %q", got)
 	}
 }
 
@@ -319,5 +324,23 @@ func TestCInDetailCopiesSelectedEntryShowsMessage(t *testing.T) {
 	}
 	if cmd == nil {
 		t.Fatal("expected command, got nil")
+	}
+}
+
+func TestResizeInDetailKeepsRenderedContent(t *testing.T) {
+	m := initialModel(t.TempDir(), nil)
+	m.view = historyView
+	m = update(t, m, tea.WindowSizeMsg{Width: 80, Height: 24})
+	m.history.SetItems(entriesToListItems([]entry{
+		{Date: "2026-06-17", Did: "did work"},
+	}))
+	m = update(t, m, press("enter"))
+
+	m = update(t, m, tea.WindowSizeMsg{Width: 40, Height: 12})
+	if m.view != detailView {
+		t.Fatalf("expected %v, got %v", detailView, m.view)
+	}
+	if got := m.detail.View(); !strings.Contains(got, "Standup") || !strings.Contains(got, "did") || !strings.Contains(got, "work") {
+		t.Fatalf("expected detail viewport to keep rendered entry after resize, got %q", got)
 	}
 }

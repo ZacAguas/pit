@@ -79,6 +79,18 @@ func (m model) viewDetail() string {
 	return m.detail.View() + message + "\n\n" + footerStyle.Render("Move: j/k | Back: q/esc | Copy: c")
 }
 
-func renderEntryMarkdown(e entry) (string, error) {
-	return glamour.Render(formatMarkdown(e), "dark")
+func renderEntryMarkdown(e entry, width int) (string, error) {
+	if width <= 0 {
+		width = 80
+	}
+
+	renderer, err := glamour.NewTermRenderer(
+		glamour.WithStylePath("dark"),
+		glamour.WithWordWrap(width),
+	)
+	if err != nil {
+		return "", err
+	}
+
+	return renderer.Render(formatMarkdown(e))
 }
