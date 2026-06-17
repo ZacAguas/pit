@@ -9,7 +9,7 @@ import (
 func formatMarkdown(e entry) string {
 	var b strings.Builder
 
-	b.WriteString("### Standup")
+	b.WriteString("# Standup")
 	if e.Date != "" {
 		b.WriteString(" — ")
 		b.WriteString(formatDateForHeading(e.Date))

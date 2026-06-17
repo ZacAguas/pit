@@ -58,6 +58,16 @@ func TestQInHistoryReturnsToToday(t *testing.T) {
 	}
 }
 
+func TestEscInHistoryReturnsToToday(t *testing.T) {
+	m := initialModel(t.TempDir(), nil)
+	m.view = historyView
+
+	m = update(t, m, press("esc"))
+	if m.view != todayView {
+		t.Fatalf("expected %v, got %v", todayView, m.view)
+	}
+}
+
 func TestQQuitsInNormalMode(t *testing.T) {
 	m := initialModel(t.TempDir(), nil)
 
@@ -245,5 +255,69 @@ func TestSaveEntryErrorShowsFailureMessage(t *testing.T) {
 	want := "Save failed: permission denied"
 	if got.message != want {
 		t.Fatalf("expected %q, got %q", want, got.message)
+	}
+}
+
+func TestEnterInHistoryWithSelectedItemOpensDetail(t *testing.T) {
+	m := initialModel(t.TempDir(), nil)
+	m.view = historyView
+	m.history.SetItems(entriesToListItems([]entry{
+		{Date: "2026-06-17", Did: "did work"},
+	}))
+
+	m = update(t, m, press("enter"))
+	if m.view != detailView {
+		t.Fatalf("expected %v, got %v", detailView, m.view)
+	}
+}
+
+func TestEnterInEmptyHistoryDoesNotOpenDetail(t *testing.T) {
+	m := initialModel(t.TempDir(), nil)
+	m.view = historyView
+
+	m = update(t, m, press("enter"))
+	if m.view != historyView {
+		t.Fatalf("expected %v, got %v", historyView, m.view)
+	}
+}
+
+func TestQInDetailReturnsToHistory(t *testing.T) {
+	m := initialModel(t.TempDir(), nil)
+	m.view = detailView
+
+	m = update(t, m, press("q"))
+	if m.view != historyView {
+		t.Fatalf("expected %v, got %v", historyView, m.view)
+	}
+}
+
+func TestEscInDetailReturnsToHistory(t *testing.T) {
+	m := initialModel(t.TempDir(), nil)
+	m.view = detailView
+
+	m = update(t, m, press("esc"))
+	if m.view != historyView {
+		t.Fatalf("expected %v, got %v", historyView, m.view)
+	}
+}
+
+func TestCInDetailCopiesSelectedEntryShowsMessage(t *testing.T) {
+	m := initialModel(t.TempDir(), nil)
+	m.view = detailView
+	m.history.SetItems(entriesToListItems([]entry{
+		{Date: "2026-06-17", Did: "did work"},
+	}))
+
+	next, cmd := m.Update(press("c"))
+	got, ok := next.(model)
+	if !ok {
+		t.Fatalf("expected model, got %T", next)
+	}
+
+	if got.message != "Copied to clipboard" {
+		t.Fatalf("expected copy message, got %q", got.message)
+	}
+	if cmd == nil {
+		t.Fatal("expected command, got nil")
 	}
 }

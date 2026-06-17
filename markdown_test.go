@@ -14,7 +14,7 @@ func TestMarkdownOutput(t *testing.T) {
 	}
 
 	output := formatMarkdown(entry)
-	expected := "### Standup — December 25, 2020\n\n" +
+	expected := "# Standup — December 25, 2020\n\n" +
 		"**Yesterday**\n" +
 		"a\n\n" +
 		"**Blocked**\n" +

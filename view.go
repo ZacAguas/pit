@@ -3,6 +3,7 @@ package main
 import (
 	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
 )
 
@@ -21,6 +22,8 @@ func (m model) View() tea.View {
 		s += m.viewToday()
 	case historyView:
 		s += m.viewHistory()
+	case detailView:
+		s += m.viewDetail()
 	}
 
 	v := tea.NewView(s)
@@ -61,5 +64,21 @@ func (m model) viewToday() string {
 func (m model) viewHistory() string {
 	s := ""
 	s += m.history.View()
+	if m.message != "" {
+		s += "\n\n" + messageStyle.Render(m.message)
+	}
 	return s
+}
+
+func (m model) viewDetail() string {
+	message := ""
+	if m.message != "" {
+		message = "\n\n" + messageStyle.Render(m.message)
+	}
+
+	return m.detail.View() + message + "\n\n" + footerStyle.Render("Move: j/k | Back: q/esc | Copy: c")
+}
+
+func renderEntryMarkdown(e entry) (string, error) {
+	return glamour.Render(formatMarkdown(e), "dark")
 }

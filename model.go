@@ -5,6 +5,7 @@ import (
 
 	"charm.land/bubbles/v2/list"
 	"charm.land/bubbles/v2/textarea"
+	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -12,6 +13,7 @@ type viewState int // the page to show
 const (
 	todayView   viewState = iota // default state - showing yesterday, blocked, today panes
 	historyView                  // history view, showing a list of previous entries
+	detailView                   // detail view, showing rendered markdown of an entry
 )
 
 type inputMode int // normal (navigation) or edit (text entry) - only relevant in todayView
@@ -28,6 +30,18 @@ const (
 	tomorrowField
 )
 
+const (
+	minViewWidth  = 20
+	minViewHeight = 1
+)
+
+func clampMin(value, min int) int {
+	if value < min {
+		return min
+	}
+	return value
+}
+
 type model struct {
 	dataDir string
 
@@ -42,6 +56,7 @@ type model struct {
 	blocked  textarea.Model
 	tomorrow textarea.Model
 	history  list.Model
+	detail   viewport.Model
 
 	focus fieldFocus
 
@@ -77,12 +92,18 @@ func newHistoryList(entries []entry) list.Model {
 	return l
 }
 
+func newViewport() viewport.Model {
+	v := viewport.New(viewport.WithWidth(0), viewport.WithHeight(0))
+	return v
+}
+
 func initialModel(dataDir string, existing *entry) model {
 	did := newTextArea("What did you do yesterday?")
 	blocked := newTextArea("Is anything blocking you?")
 	tomorrow := newTextArea("What will you do today?")
 
 	history := newHistoryList(nil)
+	detail := newViewport()
 
 	today := time.Now().Format(YYYY_MM_DD)
 	if existing != nil {
@@ -105,6 +126,7 @@ func initialModel(dataDir string, existing *entry) model {
 		blocked:  blocked,
 		tomorrow: tomorrow,
 		history:  history,
+		detail:   detail,
 		focus:    didField,
 	}
 }
@@ -114,13 +136,10 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) resizeTextAreas() model {
-	const min = 20
 	const textareaHorizontalFrame = 4 // left/right border + left/right padding
 
 	width := m.width - textareaHorizontalFrame // could use focusedPanel.GetHorizontalFrameSize() but that couples model to styling
-	if width < min {
-		width = min
-	}
+	width = clampMin(width, minViewWidth)
 	m.did.SetWidth(width)
 	m.blocked.SetWidth(width)
 	m.tomorrow.SetWidth(width)
@@ -128,15 +147,26 @@ func (m model) resizeTextAreas() model {
 }
 
 func (m model) resizeList() model {
-	const min = 20
 	const listHorizontalFrame = 4
+	const listVerticalFrame = 2
+
 	width := m.width - listHorizontalFrame
-	if width < min {
-		width = min
-	}
-	height := 20
+	width = clampMin(width, minViewWidth)
+	height := clampMin(m.height-listVerticalFrame, minViewHeight)
 
 	m.history.SetSize(width, height)
+	return m
+}
+
+func (m model) resizeViewport() model {
+	const viewportHorizontalFrame = 4
+	const footerHeight = 3
+
+	width := clampMin(m.width-viewportHorizontalFrame, minViewWidth)
+	height := clampMin(m.height-footerHeight, minViewHeight)
+	m.detail.SetWidth(width)
+	m.detail.SetHeight(height)
+
 	return m
 }
 
@@ -148,6 +178,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m = m.resizeTextAreas()
 		m = m.resizeList()
+		m = m.resizeViewport()
 		return m, nil
 	case tea.KeyPressMsg:
 		switch msg.String() {
@@ -179,6 +210,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateToday(msg)
 	case historyView:
 		return m.updateHistory(msg)
+	case detailView:
+		return m.updateDetail(msg)
 	}
 	return m, nil
 }
@@ -311,8 +344,24 @@ func (m model) updateHistory(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "q": // q goes back to today view
+		case "q", "esc": // q/esc goes back to today view
 			m.view = todayView
+			return m, nil
+		case "enter":
+			item := m.history.SelectedItem()
+			e, ok := item.(entry)
+			if !ok {
+				return m, nil
+			}
+			rendered, err := renderEntryMarkdown(e)
+			if err != nil {
+				m.message = "Could not render entry"
+				return m, clearMessageAfter(3)
+			}
+
+			m.detail.SetContent(rendered)
+			m.detail.GotoTop()
+			m.view = detailView
 			return m, nil
 		}
 	}
@@ -320,5 +369,32 @@ func (m model) updateHistory(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.history, cmd = m.history.Update(msg)
 
+	return m, cmd
+}
+
+func (m model) updateDetail(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "q", "esc":
+			m.view = historyView
+			return m, nil
+		case "c":
+			item := m.history.SelectedItem()
+			e, ok := item.(entry)
+			if !ok {
+				m.message = "No entry selected"
+				return m, clearMessageAfter(3)
+			}
+			m.message = "Copied to clipboard"
+			return m, tea.Batch(
+				tea.SetClipboard(formatMarkdown(e)),
+				clearMessageAfter(3),
+			)
+		}
+	}
+	// pass unhandled message to viewport
+	var cmd tea.Cmd
+	m.detail, cmd = m.detail.Update(msg)
 	return m, cmd
 }
