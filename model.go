@@ -3,6 +3,8 @@ package main
 import (
 	"time"
 
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/list"
 	"charm.land/bubbles/v2/textarea"
 	"charm.land/bubbles/v2/viewport"
@@ -57,6 +59,7 @@ type model struct {
 	tomorrow textarea.Model
 	history  list.Model
 	detail   viewport.Model
+	help     help.Model
 
 	focus fieldFocus
 
@@ -104,6 +107,7 @@ func initialModel(dataDir string, existing *entry) model {
 
 	history := newHistoryList(nil)
 	detail := newViewport()
+	help := help.New()
 
 	today := time.Now().Format(YYYY_MM_DD)
 	if existing != nil {
@@ -127,6 +131,7 @@ func initialModel(dataDir string, existing *entry) model {
 		tomorrow: tomorrow,
 		history:  history,
 		detail:   detail,
+		help:     help,
 		focus:    didField,
 	}
 }
@@ -176,6 +181,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.help.SetWidth(msg.Width)
 		m = m.resizeTextAreas()
 		m = m.resizeList()
 		m = m.resizeViewport()
@@ -184,8 +190,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	case tea.KeyPressMsg:
-		switch msg.String() {
-		case "ctrl+c": // uncontextual exit on ctrl+c
+		switch {
+		case key.Matches(msg, appKeys.Quit): // uncontextual exit on ctrl+c
 			return m, tea.Quit
 		}
 	case saveEntryMsg:
@@ -281,35 +287,35 @@ func (m model) focusPrevField() model {
 }
 
 // Normal mode owns navigation and app commands
-func (m model) updateTodayNormal(key tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	switch key.String() {
-	case "q", "esc":
+func (m model) updateTodayNormal(keyMsg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(keyMsg, todayKeys.Quit):
 		return m, tea.Quit
-	case "h":
+	case key.Matches(keyMsg, todayKeys.History):
 		m.view = historyView
 		return m, loadEntriesCmd(m.dataDir)
-	case "i", "enter":
+	case key.Matches(keyMsg, todayKeys.Edit):
 		m.mode = editMode
 		return m.applyTextAreaFocus()
-	case "s":
+	case key.Matches(keyMsg, todayKeys.Save):
 		// message set/cleared in Update saveEntryMsg handler
 		return m, saveEntryCmd(m.dataDir, m.currentEntry())
-	case "c":
+	case key.Matches(keyMsg, todayKeys.Copy):
 		m.message = "Copied to clipboard"
 		return m, tea.Batch(
 			tea.SetClipboard(formatMarkdown(m.currentEntry())),
 			clearMessageAfter(3),
 		)
 	// navigation
-	case "j", "down", "tab":
+	case key.Matches(keyMsg, todayKeys.Next):
 		m = m.focusNextField()
-	case "k", "up", "shift+tab":
+	case key.Matches(keyMsg, todayKeys.Prev):
 		m = m.focusPrevField()
-	case "1":
+	case key.Matches(keyMsg, todayKeys.Did):
 		m.focus = didField
-	case "2":
+	case key.Matches(keyMsg, todayKeys.Blocked):
 		m.focus = blockedField
-	case "3":
+	case key.Matches(keyMsg, todayKeys.Tomorrow):
 		m.focus = tomorrowField
 
 	}
@@ -346,11 +352,11 @@ func (m model) updateTodayEdit(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) updateHistory(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
-		switch msg.String() {
-		case "q", "esc": // q/esc goes back to today view
+		switch {
+		case key.Matches(msg, historyKeys.Back):
 			m.view = todayView
 			return m, nil
-		case "enter":
+		case key.Matches(msg, historyKeys.Open):
 			var ok bool
 			m, ok = m.renderSelectedEntry()
 			if ok {
@@ -387,11 +393,11 @@ func (m model) renderSelectedEntry() (model, bool) {
 func (m model) updateDetail(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
-		switch msg.String() {
-		case "q", "esc":
+		switch {
+		case key.Matches(msg, detailKeys.Back):
 			m.view = historyView
 			return m, nil
-		case "c":
+		case key.Matches(msg, detailKeys.Copy):
 			item := m.history.SelectedItem()
 			e, ok := item.(entry)
 			if !ok {

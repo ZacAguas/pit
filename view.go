@@ -12,7 +12,6 @@ var (
 	focusedPanel = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("48")).Padding(0, 1)
 	dimPanel     = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("240")).Padding(0, 1)
 	messageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("104"))
-	footerStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("99")).Faint(true)
 )
 
 func (m model) View() tea.View {
@@ -57,7 +56,7 @@ func (m model) viewToday() string {
 
 	s += messageStyle.Render(m.message)
 
-	s += "\n\n" + footerStyle.Render("Move: j/k/tab | History: h | Save: s | Copy: c")
+	s += "\n\n" + m.help.View(todayKeys)
 	return s
 }
 
@@ -67,6 +66,7 @@ func (m model) viewHistory() string {
 	if m.message != "" {
 		s += "\n\n" + messageStyle.Render(m.message)
 	}
+	s += "\n\n" + m.help.View(historyKeys)
 	return s
 }
 
@@ -76,7 +76,7 @@ func (m model) viewDetail() string {
 		message = "\n\n" + messageStyle.Render(m.message)
 	}
 
-	return m.detail.View() + message + "\n\n" + footerStyle.Render("Move: j/k | Back: q/esc | Copy: c")
+	return m.detail.View() + message + "\n\n" + m.help.View(detailKeys)
 }
 
 func renderEntryMarkdown(e entry, width int) (string, error) {
