@@ -108,7 +108,7 @@ func newViewport() viewport.Model {
 	return v
 }
 
-func initialModel(dataDir string, config config, configPath string, untrackedRepoPath string, existingEntry *entry) model {
+func initialModel(daysBack int, dataDir string, config config, configPath string, untrackedRepoPath string, existingEntry *entry) model {
 	did := newTextArea("What did you do yesterday?")
 	blocked := newTextArea("Is anything blocking you?")
 	tomorrow := newTextArea("What will you do today?")
@@ -128,7 +128,7 @@ func initialModel(dataDir string, config config, configPath string, untrackedRep
 		tomorrow.SetValue(existingEntry.Tomorrow)
 	} else if len(config.Repos) > 0 { // no existing entry and config has repo(s)
 		loadingCommits = true
-		commitSinceDate = previousWorkday(time.Now(), 1).Format(YYYY_MM_DD)
+		commitSinceDate = previousWorkday(time.Now(), daysBack).Format(YYYY_MM_DD)
 	}
 	// if no existing entry and no repos in config, return empty model
 

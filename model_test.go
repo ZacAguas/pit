@@ -43,7 +43,7 @@ func testModel(t *testing.T) model {
 	t.Helper()
 
 	dir := t.TempDir()
-	return initialModel(dir, config{}, configFilePath(dir), "", nil)
+	return initialModel(1, dir, config{}, configFilePath(dir), "", nil)
 }
 
 func TestInitialModelWithExistingEntryDoesNotLoadCommits(t *testing.T) {
@@ -55,7 +55,7 @@ func TestInitialModelWithExistingEntryDoesNotLoadCommits(t *testing.T) {
 		Tomorrow: "next thing",
 	}
 
-	m := initialModel(dir, config{Repos: []repoConfig{{Path: dir}}}, configFilePath(dir), "", &existing)
+	m := initialModel(1, dir, config{Repos: []repoConfig{{Path: dir}}}, configFilePath(dir), "", &existing)
 
 	if m.loadingCommits {
 		t.Fatal("expected loadingCommits false")
@@ -71,7 +71,7 @@ func TestInitialModelWithExistingEntryDoesNotLoadCommits(t *testing.T) {
 func TestInitialModelWithReposLoadsCommits(t *testing.T) {
 	dir := t.TempDir()
 
-	m := initialModel(dir, config{Repos: []repoConfig{{Path: dir}}}, configFilePath(dir), "", nil)
+	m := initialModel(1, dir, config{Repos: []repoConfig{{Path: dir}}}, configFilePath(dir), "", nil)
 
 	if !m.loadingCommits {
 		t.Fatal("expected loadingCommits true")

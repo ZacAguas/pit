@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"log"
 	"os"
 	"time"
@@ -19,6 +20,9 @@ func main() {
 		}
 		defer f.Close()
 	}
+
+	daysBack := flag.Int("days-back", 1, "number of workdays back to load commits from")
+	flag.Parse()
 
 	configDir, err := getConfigDir()
 	if err != nil {
@@ -58,7 +62,7 @@ func main() {
 		log.Printf("could not load today entry: %v", err)
 	}
 
-	m := initialModel(dataDir, cfg, cfgPath, untrackedRepoPath, todayEntry)
+	m := initialModel(*daysBack, dataDir, cfg, cfgPath, untrackedRepoPath, todayEntry)
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		log.Fatalf("could not start program: %v", err)
