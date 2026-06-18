@@ -25,7 +25,10 @@ func main() {
 		log.Fatalf("could not get config directory: %v", err)
 	}
 	cfgPath := configFilePath(configDir)
-	fallbackEmail := getGlobalGitEmail()
+	fallbackEmail, err := getGlobalGitEmail()
+	if err != nil {
+		log.Printf("could not get global git email: %v", err)
+	}
 	cfg, err := ensureConfig(cfgPath, fallbackEmail)
 	if err != nil {
 		log.Fatalf("could not load config: %v", err)

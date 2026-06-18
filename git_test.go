@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -81,7 +82,10 @@ func TestEmailForRepoUsesConfigEmailFirst(t *testing.T) {
 		Email: "configured@example.com",
 	}
 
-	got := emailForRepo(repo, "fallback@example.com")
+	got, err := emailForRepo(repo, "fallback@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
 	want := "configured@example.com"
 
 	if got != want {
@@ -96,7 +100,10 @@ func TestEmailForRepoUsesRepoLocalEmail(t *testing.T) {
 
 	repo := repoConfig{Path: dir}
 
-	got := emailForRepo(repo, "fallback@example.com")
+	got, err := emailForRepo(repo, "fallback@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
 	want := "local@example.com"
 
 	if got != want {
@@ -110,11 +117,31 @@ func TestEmailForRepoFallsBackToGlobalFallback(t *testing.T) {
 
 	repo := repoConfig{Path: dir}
 
-	got := emailForRepo(repo, "fallback@example.com")
+	got, err := emailForRepo(repo, "fallback@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
 	want := "fallback@example.com"
 
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestGetRepoGitEmailReturnsNoRepoGitEmailError(t *testing.T) {
+	dir := t.TempDir()
+	runGit(t, dir, "init")
+
+	_, err := getRepoGitEmail(dir)
+	if !errors.Is(err, errNoRepoGitEmail) {
+		t.Fatalf("expected errNoRepoGitEmail, got %v", err)
+	}
+}
+
+func TestEmailForRepoReturnsUnexpectedGitError(t *testing.T) {
+	_, err := emailForRepo(repoConfig{Path: filepath.Join(t.TempDir(), "missing")}, "fallback@example.com")
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
 }
 
