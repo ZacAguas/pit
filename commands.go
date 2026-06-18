@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -56,6 +57,33 @@ func trackRepoCmd(configPath string, cfg config, repoPath string) tea.Cmd {
 		return trackRepoMsg{
 			cfg:      nextConfig,
 			repoPath: normalizedRepoPath,
+		}
+	}
+}
+
+type queryReposCommitsMsg struct {
+	commits  string
+	warnings []string
+}
+
+func queryReposCommitsCmd(repos []repoConfig, commitSinceDate string, fallbackEmail string) tea.Cmd {
+	return func() tea.Msg {
+		var allCommits []string
+		var warnings []string
+
+		for _, repo := range repos {
+			commits, err := queryRepoCommits(repo, commitSinceDate, fallbackEmail)
+			if err != nil {
+				warnings = append(warnings, "Could not load commits for "+repo.Path)
+				continue
+			}
+			if commits != "" {
+				allCommits = append(allCommits, commits)
+			}
+		}
+		return queryReposCommitsMsg{
+			commits:  strings.Join(allCommits, "\n"),
+			warnings: warnings,
 		}
 	}
 }

@@ -51,6 +51,10 @@ type model struct {
 	config            config
 	untrackedRepoPath string
 
+	loadingCommits   bool
+	commitsSinceDate string
+	commitWarnings   []string
+
 	view viewState
 	mode inputMode
 
@@ -104,7 +108,7 @@ func newViewport() viewport.Model {
 	return v
 }
 
-func initialModel(dataDir string, config config, configPath string, untrackedRepoPath string, existing *entry) model {
+func initialModel(dataDir string, config config, configPath string, untrackedRepoPath string, existingEntry *entry) model {
 	did := newTextArea("What did you do yesterday?")
 	blocked := newTextArea("Is anything blocking you?")
 	tomorrow := newTextArea("What will you do today?")
@@ -114,17 +118,27 @@ func initialModel(dataDir string, config config, configPath string, untrackedRep
 	help := help.New()
 
 	today := time.Now().Format(YYYY_MM_DD)
-	if existing != nil {
-		today = existing.Date
-		did.SetValue(existing.Did)
-		blocked.SetValue(existing.Blocked)
-		tomorrow.SetValue(existing.Tomorrow)
+
+	var loadingCommits bool
+	var commitSinceDate string
+	if existingEntry != nil {
+		today = existingEntry.Date
+		did.SetValue(existingEntry.Did)
+		blocked.SetValue(existingEntry.Blocked)
+		tomorrow.SetValue(existingEntry.Tomorrow)
+	} else if len(config.Repos) > 0 { // no existing entry and config has repo(s)
+		loadingCommits = true
+		commitSinceDate = previousWorkday(time.Now(), 1).Format(YYYY_MM_DD)
 	}
+	// if no existing entry and no repos in config, return empty model
+
 	return model{
 		dataDir:           dataDir,
 		configPath:        configPath,
 		config:            config,
 		untrackedRepoPath: untrackedRepoPath,
+		loadingCommits:    loadingCommits,
+		commitsSinceDate:  commitSinceDate,
 
 		view: todayView,
 		mode: normalMode,
@@ -144,6 +158,9 @@ func initialModel(dataDir string, config config, configPath string, untrackedRep
 }
 
 func (m model) Init() tea.Cmd {
+	if m.loadingCommits {
+		return queryReposCommitsCmd(m.config.Repos, m.commitsSinceDate, m.config.GlobalEmail)
+	}
 	return nil
 }
 
@@ -194,6 +211,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m = m.resizeViewport()
 		if m.view == detailView {
 			m, _ = m.renderSelectedEntry()
+		}
+		return m, nil
+	case queryReposCommitsMsg:
+		m.loadingCommits = false
+		if msg.commits != "" {
+			m.did.SetValue(msg.commits)
+		}
+		m.commitWarnings = msg.warnings
+		if len(msg.warnings) > 0 {
+			m.message = "Some commits could not be loaded"
+			return m, clearMessageAfter(3)
 		}
 		return m, nil
 	case tea.KeyPressMsg:

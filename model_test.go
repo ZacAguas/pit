@@ -46,6 +46,58 @@ func testModel(t *testing.T) model {
 	return initialModel(dir, config{}, configFilePath(dir), "", nil)
 }
 
+func TestInitialModelWithExistingEntryDoesNotLoadCommits(t *testing.T) {
+	dir := t.TempDir()
+	existing := entry{
+		Date:     "2026-06-16",
+		Did:      "did work",
+		Blocked:  "blocked thing",
+		Tomorrow: "next thing",
+	}
+
+	m := initialModel(dir, config{Repos: []repoConfig{{Path: dir}}}, configFilePath(dir), "", &existing)
+
+	if m.loadingCommits {
+		t.Fatal("expected loadingCommits false")
+	}
+	if got := m.did.Value(); got != existing.Did {
+		t.Fatalf("expected did %q, got %q", existing.Did, got)
+	}
+	if cmd := m.Init(); cmd != nil {
+		t.Fatal("expected nil Init command")
+	}
+}
+
+func TestInitialModelWithReposLoadsCommits(t *testing.T) {
+	dir := t.TempDir()
+
+	m := initialModel(dir, config{Repos: []repoConfig{{Path: dir}}}, configFilePath(dir), "", nil)
+
+	if !m.loadingCommits {
+		t.Fatal("expected loadingCommits true")
+	}
+	if m.commitsSinceDate == "" {
+		t.Fatal("expected commitsSinceDate to be set")
+	}
+	if cmd := m.Init(); cmd == nil {
+		t.Fatal("expected Init command")
+	}
+}
+
+func TestInitialModelWithoutReposDoesNotLoadCommits(t *testing.T) {
+	m := testModel(t)
+
+	if m.loadingCommits {
+		t.Fatal("expected loadingCommits false")
+	}
+	if m.commitsSinceDate != "" {
+		t.Fatalf("expected empty commitsSinceDate, got %q", m.commitsSinceDate)
+	}
+	if cmd := m.Init(); cmd != nil {
+		t.Fatal("expected nil Init command")
+	}
+}
+
 func TestHOpensHistory(t *testing.T) {
 	m := testModel(t)
 
@@ -241,6 +293,45 @@ func TestClearMessageClearsMessage(t *testing.T) {
 
 	if got.message != "" {
 		t.Fatalf("expected message to be cleared, got %q", got.message)
+	}
+}
+
+func TestQueryReposCommitsMessageSetsDidAndClearsLoading(t *testing.T) {
+	m := testModel(t)
+	m.loadingCommits = true
+
+	next, _ := m.Update(queryReposCommitsMsg{commits: "- Add config"})
+	got := next.(model)
+
+	if got.loadingCommits {
+		t.Fatal("expected loadingCommits false")
+	}
+	if got.did.Value() != "- Add config" {
+		t.Fatalf("expected commits in did field, got %q", got.did.Value())
+	}
+	if got.message != "" {
+		t.Fatalf("expected empty message, got %q", got.message)
+	}
+}
+
+func TestQueryReposCommitsMessageStoresWarnings(t *testing.T) {
+	m := testModel(t)
+	m.loadingCommits = true
+
+	next, _ := m.Update(queryReposCommitsMsg{
+		warnings: []string{"Could not load commits for /tmp/project"},
+	})
+	got := next.(model)
+
+	if got.loadingCommits {
+		t.Fatal("expected loadingCommits false")
+	}
+	if len(got.commitWarnings) != 1 {
+		t.Fatalf("expected one warning, got %#v", got.commitWarnings)
+	}
+	want := "Some commits could not be loaded"
+	if got.message != want {
+		t.Fatalf("expected %q, got %q", want, got.message)
 	}
 }
 

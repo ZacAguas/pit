@@ -55,6 +55,10 @@ func (m model) viewToday() string {
 	}
 	s += " mode\n\n"
 
+	if m.loadingCommits {
+		s += messageStyle.Render("Loading commits...") + "\n"
+	}
+
 	if m.message != "" {
 		s += messageStyle.Render(m.message) + "\n"
 	}
