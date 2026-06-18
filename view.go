@@ -12,6 +12,7 @@ var (
 	focusedPanel = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("48")).Padding(0, 1)
 	dimPanel     = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("240")).Padding(0, 1)
 	messageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("104"))
+	warningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("178"))
 )
 
 func (m model) View() tea.View {
@@ -54,7 +55,13 @@ func (m model) viewToday() string {
 	}
 	s += " mode\n\n"
 
-	s += messageStyle.Render(m.message)
+	if m.message != "" {
+		s += messageStyle.Render(m.message) + "\n"
+	}
+
+	if m.untrackedRepoPath != "" {
+		s += warningStyle.Render("Untracked repo: " + m.untrackedRepoPath)
+	}
 
 	s += "\n\n" + m.help.View(todayKeys)
 	return s

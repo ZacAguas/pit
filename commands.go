@@ -37,3 +37,25 @@ func loadEntriesCmd(dataDir string) tea.Cmd {
 		return loadEntriesMsg{entries: entries, err: err}
 	}
 }
+
+type trackRepoMsg struct {
+	cfg      config
+	repoPath string
+	err      error
+}
+
+func trackRepoCmd(configPath string, cfg config, repoPath string) tea.Cmd {
+	return func() tea.Msg {
+		nextConfig, normalizedRepoPath, err := configWithRepo(cfg, repoPath)
+		if err != nil {
+			return trackRepoMsg{err: err}
+		}
+		if err := saveConfig(configPath, nextConfig); err != nil {
+			return trackRepoMsg{err: err}
+		}
+		return trackRepoMsg{
+			cfg:      nextConfig,
+			repoPath: normalizedRepoPath,
+		}
+	}
+}

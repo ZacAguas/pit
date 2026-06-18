@@ -23,7 +23,6 @@ func getDataPath() (string, error) {
 	}
 
 	dir := filepath.Join(baseDir, "pit", "entries")
-	log.Printf("Using data directory %q", dir)
 	return dir, nil
 }
 

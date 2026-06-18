@@ -34,6 +34,21 @@ func main() {
 		log.Fatalf("could not load config: %v", err)
 	}
 
+	// get tracked/untracked git repos
+	var untrackedRepoPath string
+	isInRepo, err := isInsideGitRepo()
+	if err != nil {
+		log.Printf("could not check if inside git repo: %v", err)
+	}
+	if isInRepo {
+		repoPath, err := currentRepoRoot()
+		if err != nil {
+			log.Printf("could not get current repo root: %v", err)
+		} else if !configHasRepo(cfg, repoPath) {
+			untrackedRepoPath = repoPath
+		}
+	}
+
 	dataDir, err := getDataPath()
 	if err != nil {
 		log.Fatalf("could not get data path: %v", err)
@@ -43,7 +58,7 @@ func main() {
 		log.Printf("could not load today entry: %v", err)
 	}
 
-	m := initialModel(dataDir, cfg, cfgPath, todayEntry)
+	m := initialModel(dataDir, cfg, cfgPath, untrackedRepoPath, todayEntry)
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		log.Fatalf("could not start program: %v", err)

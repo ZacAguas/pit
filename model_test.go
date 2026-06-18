@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -42,7 +43,7 @@ func testModel(t *testing.T) model {
 	t.Helper()
 
 	dir := t.TempDir()
-	return initialModel(dir, config{}, configFilePath(dir), nil)
+	return initialModel(dir, config{}, configFilePath(dir), "", nil)
 }
 
 func TestHOpensHistory(t *testing.T) {
@@ -261,6 +262,67 @@ func TestSaveEntryErrorShowsFailureMessage(t *testing.T) {
 	got := next.(model)
 
 	want := "Save failed: permission denied"
+	if got.message != want {
+		t.Fatalf("expected %q, got %q", want, got.message)
+	}
+}
+
+func TestAWithUntrackedRepoReturnsTrackRepoCommand(t *testing.T) {
+	m := testModel(t)
+	m.untrackedRepoPath = filepath.Join(t.TempDir(), "project")
+
+	_, cmd := m.Update(press("a"))
+	if cmd == nil {
+		t.Fatal("expected command, got nil")
+	}
+}
+
+func TestAWithoutUntrackedRepoDoesNothing(t *testing.T) {
+	m := testModel(t)
+
+	_, cmd := m.Update(press("a"))
+	if cmd != nil {
+		t.Fatal("expected nil command")
+	}
+}
+
+func TestTrackRepoSuccessUpdatesConfigAndClearsUntrackedRepo(t *testing.T) {
+	m := testModel(t)
+	repoPath := filepath.Join(t.TempDir(), "project")
+	normalizedRepoPath, err := normalizeRepoPath(repoPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.untrackedRepoPath = repoPath
+
+	next, _ := m.Update(trackRepoMsg{
+		cfg:      config{Repos: []repoConfig{{Path: normalizedRepoPath}}},
+		repoPath: normalizedRepoPath,
+	})
+	got := next.(model)
+
+	if got.untrackedRepoPath != "" {
+		t.Fatalf("expected untracked repo path to be cleared, got %q", got.untrackedRepoPath)
+	}
+	if !configHasRepo(got.config, normalizedRepoPath) {
+		t.Fatalf("expected config to contain %q, got %#v", normalizedRepoPath, got.config.Repos)
+	}
+	if got.message != "Tracking repo: "+normalizedRepoPath {
+		t.Fatalf("expected tracking message, got %q", got.message)
+	}
+}
+
+func TestTrackRepoErrorKeepsUntrackedRepo(t *testing.T) {
+	m := testModel(t)
+	m.untrackedRepoPath = "/tmp/project"
+
+	next, _ := m.Update(trackRepoMsg{err: errors.New("permission denied")})
+	got := next.(model)
+
+	if got.untrackedRepoPath != m.untrackedRepoPath {
+		t.Fatalf("expected untracked repo path %q, got %q", m.untrackedRepoPath, got.untrackedRepoPath)
+	}
+	want := "Could not track repo: permission denied"
 	if got.message != want {
 		t.Fatalf("expected %q, got %q", want, got.message)
 	}

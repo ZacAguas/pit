@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/BurntSushi/toml"
 )
@@ -76,4 +77,34 @@ func ensureConfig(filePath string, fallbackEmail string) (config, error) {
 		return config{}, err
 	}
 	return cfg, nil
+}
+
+func normalizeRepoPath(path string) (string, error) {
+	return filepath.Abs(filepath.Clean(path))
+}
+
+func configHasRepo(cfg config, path string) bool {
+	normalizedPath, err := normalizeRepoPath(path)
+	if err != nil {
+		return false
+	}
+
+	return slices.ContainsFunc(cfg.Repos, func(r repoConfig) bool {
+		repoPath, err := normalizeRepoPath(r.Path)
+		return err == nil && repoPath == normalizedPath
+	})
+}
+
+func configWithRepo(cfg config, path string) (config, string, error) {
+	repoPath, err := normalizeRepoPath(path)
+	if err != nil {
+		return config{}, "", err
+	}
+
+	if configHasRepo(cfg, repoPath) {
+		return cfg, repoPath, nil
+	}
+
+	cfg.Repos = append(cfg.Repos, repoConfig{Path: repoPath})
+	return cfg, repoPath, nil
 }

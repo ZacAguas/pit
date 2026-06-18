@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 )
@@ -97,5 +98,94 @@ func TestSaveConfigWritesToPassedTempPath(t *testing.T) {
 
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("expected %#v, got %#v", want, got)
+	}
+}
+
+func TestConfigHasRepoFindsRepo(t *testing.T) {
+	repoPath := filepath.Join(t.TempDir(), "project")
+
+	cfg := config{
+		Repos: []repoConfig{
+			{
+				Path: repoPath,
+			},
+		},
+	}
+
+	if !configHasRepo(cfg, repoPath) {
+		t.Fatal("expected true, got false")
+	}
+}
+
+func TestConfigHasRepoReturnsFalseForUnknownRepo(t *testing.T) {
+	const unknownRepoPath = "/tmp/unknown"
+
+	cfg := config{
+		Repos: []repoConfig{
+			{
+				Path: "/tmp/project",
+			},
+		},
+	}
+
+	if configHasRepo(cfg, unknownRepoPath) {
+		t.Fatal("expected false, got true")
+	}
+}
+
+func TestConfigHasRepoNormalizesPaths(t *testing.T) {
+	dir := t.TempDir()
+	repoPath := filepath.Join(dir, "project")
+
+	cfg := config{
+		Repos: []repoConfig{
+			{
+				Path: filepath.Join(repoPath, "."),
+			},
+		},
+	}
+
+	if !configHasRepo(cfg, repoPath) {
+		t.Fatal("expected true, got false")
+	}
+}
+
+func TestConfigWithRepoAddsNormalizedPath(t *testing.T) {
+	dir := t.TempDir()
+	repoPath := filepath.Join(dir, "project", ".")
+
+	got, normalizedRepoPath, err := configWithRepo(config{}, repoPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantPath, err := normalizeRepoPath(repoPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if normalizedRepoPath != wantPath {
+		t.Fatalf("expected normalized path %q, got %q", wantPath, normalizedRepoPath)
+	}
+	if len(got.Repos) != 1 || got.Repos[0].Path != wantPath {
+		t.Fatalf("expected repo path %q, got %#v", wantPath, got.Repos)
+	}
+}
+
+func TestConfigWithRepoDoesNotDuplicateEquivalentPath(t *testing.T) {
+	dir := t.TempDir()
+	repoPath := filepath.Join(dir, "project")
+
+	cfg := config{
+		Repos: []repoConfig{{Path: filepath.Join(repoPath, ".")}},
+	}
+
+	got, _, err := configWithRepo(cfg, repoPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(got.Repos) != 1 {
+		t.Fatalf("expected one repo, got %#v", got.Repos)
 	}
 }

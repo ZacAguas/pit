@@ -48,7 +48,8 @@ type model struct {
 	dataDir    string
 	configPath string
 
-	config config
+	config            config
+	untrackedRepoPath string
 
 	view viewState
 	mode inputMode
@@ -103,7 +104,7 @@ func newViewport() viewport.Model {
 	return v
 }
 
-func initialModel(dataDir string, config config, configPath string, existing *entry) model {
+func initialModel(dataDir string, config config, configPath string, untrackedRepoPath string, existing *entry) model {
 	did := newTextArea("What did you do yesterday?")
 	blocked := newTextArea("Is anything blocking you?")
 	tomorrow := newTextArea("What will you do today?")
@@ -120,9 +121,10 @@ func initialModel(dataDir string, config config, configPath string, existing *en
 		tomorrow.SetValue(existing.Tomorrow)
 	}
 	return model{
-		dataDir:    dataDir,
-		configPath: configPath,
-		config:     config,
+		dataDir:           dataDir,
+		configPath:        configPath,
+		config:            config,
+		untrackedRepoPath: untrackedRepoPath,
 
 		view: todayView,
 		mode: normalMode,
@@ -216,6 +218,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, clearMessageAfter(3)
 		}
 		return m, m.history.SetItems(entriesToListItems(msg.entries))
+	case trackRepoMsg:
+		if msg.err != nil {
+			m.message = "Could not track repo: " + msg.err.Error()
+			return m, clearMessageAfter(3)
+		}
+		m.config = msg.cfg
+		m.untrackedRepoPath = ""
+		m.message = "Tracking repo: " + msg.repoPath
+		return m, clearMessageAfter(3)
 	}
 
 	// run viewState-specific update functions
@@ -311,6 +322,11 @@ func (m model) updateTodayNormal(keyMsg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			tea.SetClipboard(formatMarkdown(m.currentEntry())),
 			clearMessageAfter(3),
 		)
+	case key.Matches(keyMsg, todayKeys.TrackRepo):
+		if m.untrackedRepoPath == "" {
+			return m, nil
+		}
+		return m, trackRepoCmd(m.configPath, m.config, m.untrackedRepoPath)
 	// navigation
 	case key.Matches(keyMsg, todayKeys.Next):
 		m = m.focusNextField()
