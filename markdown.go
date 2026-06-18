@@ -42,3 +42,14 @@ func formatDateForHeading(date string) string {
 	formattedDate := parsedTime.Format("January 2, 2006")
 	return formattedDate
 }
+
+func joinSections(sections ...string) string {
+	var nonEmpty []string
+	for _, section := range sections {
+		section = strings.TrimSpace(section)
+		if section != "" {
+			nonEmpty = append(nonEmpty, section)
+		}
+	}
+	return strings.Join(nonEmpty, "\n\n")
+}

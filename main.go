@@ -62,7 +62,13 @@ func main() {
 		log.Printf("could not load today entry: %v", err)
 	}
 
-	m := initialModel(*daysBack, dataDir, cfg, cfgPath, untrackedRepoPath, todayEntry)
+	sinceDate := commitSinceDate(time.Now(), *daysBack)
+	previousEntry, err := getEntryForDate(dataDir, sinceDate)
+	if err != nil {
+		log.Printf("could not load previous entry: %v", err)
+	}
+
+	m := initialModel(dataDir, cfg, cfgPath, untrackedRepoPath, sinceDate, todayEntry, previousEntry)
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		log.Fatalf("could not start program: %v", err)
@@ -71,7 +77,11 @@ func main() {
 
 func getTodayEntry(dataDir string) (*entry, error) {
 	today := time.Now().Format(YYYY_MM_DD)
-	filePath := entryFilePath(dataDir, today)
+	return getEntryForDate(dataDir, today)
+}
+
+func getEntryForDate(dataDir string, date string) (*entry, error) {
+	filePath := entryFilePath(dataDir, date)
 	e, err := loadEntry(filePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {

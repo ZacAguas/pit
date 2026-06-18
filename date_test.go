@@ -66,3 +66,12 @@ func mustParseDate(t *testing.T, value string) time.Time {
 	}
 	return date
 }
+
+func TestCommitSinceDate(t *testing.T) {
+	got := commitSinceDate(mustParseDate(t, "2026-06-19"), 2)
+	want := "2026-06-17"
+
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}

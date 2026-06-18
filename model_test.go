@@ -43,7 +43,7 @@ func testModel(t *testing.T) model {
 	t.Helper()
 
 	dir := t.TempDir()
-	return initialModel(1, dir, config{}, configFilePath(dir), "", nil)
+	return initialModel(dir, config{}, configFilePath(dir), "", "", nil, nil)
 }
 
 func TestInitialModelWithExistingEntryDoesNotLoadCommits(t *testing.T) {
@@ -55,7 +55,7 @@ func TestInitialModelWithExistingEntryDoesNotLoadCommits(t *testing.T) {
 		Tomorrow: "next thing",
 	}
 
-	m := initialModel(1, dir, config{Repos: []repoConfig{{Path: dir}}}, configFilePath(dir), "", &existing)
+	m := initialModel(dir, config{Repos: []repoConfig{{Path: dir}}}, configFilePath(dir), "", "2026-06-15", &existing, nil)
 
 	if m.loadingCommits {
 		t.Fatal("expected loadingCommits false")
@@ -71,13 +71,13 @@ func TestInitialModelWithExistingEntryDoesNotLoadCommits(t *testing.T) {
 func TestInitialModelWithReposLoadsCommits(t *testing.T) {
 	dir := t.TempDir()
 
-	m := initialModel(1, dir, config{Repos: []repoConfig{{Path: dir}}}, configFilePath(dir), "", nil)
+	m := initialModel(dir, config{Repos: []repoConfig{{Path: dir}}}, configFilePath(dir), "", "2026-06-15", nil, nil)
 
 	if !m.loadingCommits {
 		t.Fatal("expected loadingCommits true")
 	}
-	if m.commitsSinceDate == "" {
-		t.Fatal("expected commitsSinceDate to be set")
+	if m.commitSinceDate != "2026-06-15" {
+		t.Fatalf("expected commitSinceDate %q, got %q", "2026-06-15", m.commitSinceDate)
 	}
 	if cmd := m.Init(); cmd == nil {
 		t.Fatal("expected Init command")
@@ -90,11 +90,28 @@ func TestInitialModelWithoutReposDoesNotLoadCommits(t *testing.T) {
 	if m.loadingCommits {
 		t.Fatal("expected loadingCommits false")
 	}
-	if m.commitsSinceDate != "" {
-		t.Fatalf("expected empty commitsSinceDate, got %q", m.commitsSinceDate)
+	if m.commitSinceDate != "" {
+		t.Fatalf("expected empty commitSinceDate, got %q", m.commitSinceDate)
 	}
 	if cmd := m.Init(); cmd != nil {
 		t.Fatal("expected nil Init command")
+	}
+}
+
+func TestInitialModelSeedsDidFromPreviousEntry(t *testing.T) {
+	dir := t.TempDir()
+	previous := entry{
+		Date:     "2026-06-15",
+		Tomorrow: "finish git prepopulation",
+	}
+
+	m := initialModel(dir, config{}, configFilePath(dir), "", "2026-06-15", nil, &previous)
+
+	if got := m.did.Value(); got != previous.Tomorrow {
+		t.Fatalf("expected did %q, got %q", previous.Tomorrow, got)
+	}
+	if m.loadingCommits {
+		t.Fatal("expected loadingCommits false")
 	}
 }
 
@@ -311,6 +328,20 @@ func TestQueryReposCommitsMessageSetsDidAndClearsLoading(t *testing.T) {
 	}
 	if got.message != "" {
 		t.Fatalf("expected empty message, got %q", got.message)
+	}
+}
+
+func TestQueryReposCommitsMessageAppendsToExistingDid(t *testing.T) {
+	m := testModel(t)
+	m.loadingCommits = true
+	m.did.SetValue("finish git prepopulation")
+
+	next, _ := m.Update(queryReposCommitsMsg{commits: "- Add commits"})
+	got := next.(model)
+
+	want := "finish git prepopulation\n\n- Add commits"
+	if got.did.Value() != want {
+		t.Fatalf("expected did %q, got %q", want, got.did.Value())
 	}
 }
 

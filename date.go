@@ -17,3 +17,7 @@ func previousWorkday(today time.Time, daysBack int) time.Time {
 	}
 	return d
 }
+
+func commitSinceDate(today time.Time, daysBack int) string {
+	return previousWorkday(today, daysBack).Format(YYYY_MM_DD)
+}
