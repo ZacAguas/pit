@@ -20,17 +20,27 @@ func main() {
 		defer f.Close()
 	}
 
+	configDir, err := getConfigDir()
+	if err != nil {
+		log.Fatalf("could not get config directory: %v", err)
+	}
+	cfgPath := configFilePath(configDir)
+	fallbackEmail := getGlobalGitEmail()
+	cfg, err := ensureConfig(cfgPath, fallbackEmail)
+	if err != nil {
+		log.Fatalf("could not load config: %v", err)
+	}
+
 	dataDir, err := getDataPath()
 	if err != nil {
 		log.Fatalf("could not get data path: %v", err)
 	}
-
 	todayEntry, err := getTodayEntry(dataDir)
 	if err != nil {
 		log.Printf("could not load today entry: %v", err)
 	}
 
-	m := initialModel(dataDir, todayEntry)
+	m := initialModel(dataDir, cfg, cfgPath, todayEntry)
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		log.Fatalf("could not start program: %v", err)

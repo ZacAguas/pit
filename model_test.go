@@ -38,8 +38,15 @@ func update(t *testing.T, m model, msg tea.Msg) model {
 	return got
 }
 
+func testModel(t *testing.T) model {
+	t.Helper()
+
+	dir := t.TempDir()
+	return initialModel(dir, config{}, configFilePath(dir), nil)
+}
+
 func TestHOpensHistory(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 
 	// send an H keypress, should switch to history view
 	m = update(t, m, press("h"))
@@ -49,7 +56,7 @@ func TestHOpensHistory(t *testing.T) {
 }
 
 func TestQInHistoryReturnsToToday(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 	m.view = historyView // move to history view
 
 	// send a Q keypress, should switch to today view
@@ -60,7 +67,7 @@ func TestQInHistoryReturnsToToday(t *testing.T) {
 }
 
 func TestEscInHistoryReturnsToToday(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 	m.view = historyView
 
 	m = update(t, m, press("esc"))
@@ -70,7 +77,7 @@ func TestEscInHistoryReturnsToToday(t *testing.T) {
 }
 
 func TestQQuitsInNormalMode(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 
 	_, cmd := m.Update(press("q"))
 	if cmd == nil {
@@ -79,7 +86,7 @@ func TestQQuitsInNormalMode(t *testing.T) {
 }
 
 func TestIEntersEditMode(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 
 	m = update(t, m, press("i"))
 	if m.mode != editMode {
@@ -88,7 +95,7 @@ func TestIEntersEditMode(t *testing.T) {
 }
 
 func TestEscEntersNormalMode(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 
 	// enter edit mode
 	m = update(t, m, press("i"))
@@ -100,7 +107,7 @@ func TestEscEntersNormalMode(t *testing.T) {
 }
 
 func TestQDoesNotQuitInEditMode(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 
 	m.mode = editMode
 	m.focus = didField
@@ -125,7 +132,7 @@ func TestQDoesNotQuitInEditMode(t *testing.T) {
 }
 
 func TestNextFieldNavigationCycles(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 
 	m = update(t, m, press("j"))
 	if m.focus != blockedField {
@@ -144,7 +151,7 @@ func TestNextFieldNavigationCycles(t *testing.T) {
 }
 
 func TestPreviousFieldNavigationCycles(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 
 	m = update(t, m, press("k"))
 	if m.focus != tomorrowField {
@@ -163,7 +170,7 @@ func TestPreviousFieldNavigationCycles(t *testing.T) {
 }
 
 func TestNumberKeysJumpToFields(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 
 	m = update(t, m, press("2"))
 	if m.focus != blockedField {
@@ -182,7 +189,7 @@ func TestNumberKeysJumpToFields(t *testing.T) {
 }
 
 func TestCurrentEntryUsesTextFields(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 
 	const did = "did work"
 	const blocked = "blocked thing"
@@ -204,7 +211,7 @@ func TestCurrentEntryUsesTextFields(t *testing.T) {
 }
 
 func TestCCopiesCurrentEntryShowsMessage(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 
 	next, cmd := m.Update(press("c"))
 	got, ok := next.(model)
@@ -222,7 +229,7 @@ func TestCCopiesCurrentEntryShowsMessage(t *testing.T) {
 }
 
 func TestClearMessageClearsMessage(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 	m.message = "Copied to clipboard"
 
 	next, _ := m.Update(clearMessageMsg{})
@@ -237,7 +244,7 @@ func TestClearMessageClearsMessage(t *testing.T) {
 }
 
 func TestSaveEntrySuccessShowsSavedMessage(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 
 	next, _ := m.Update(saveEntryMsg{err: nil})
 	got := next.(model)
@@ -248,7 +255,7 @@ func TestSaveEntrySuccessShowsSavedMessage(t *testing.T) {
 }
 
 func TestSaveEntryErrorShowsFailureMessage(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 
 	next, _ := m.Update(saveEntryMsg{err: errors.New("permission denied")})
 	got := next.(model)
@@ -260,7 +267,7 @@ func TestSaveEntryErrorShowsFailureMessage(t *testing.T) {
 }
 
 func TestEnterInHistoryWithSelectedItemOpensDetail(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 	m.view = historyView
 	m = update(t, m, tea.WindowSizeMsg{Width: 80, Height: 24})
 	m.history.SetItems(entriesToListItems([]entry{
@@ -277,7 +284,7 @@ func TestEnterInHistoryWithSelectedItemOpensDetail(t *testing.T) {
 }
 
 func TestEnterInEmptyHistoryDoesNotOpenDetail(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 	m.view = historyView
 
 	m = update(t, m, press("enter"))
@@ -287,7 +294,7 @@ func TestEnterInEmptyHistoryDoesNotOpenDetail(t *testing.T) {
 }
 
 func TestQInDetailReturnsToHistory(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 	m.view = detailView
 
 	m = update(t, m, press("q"))
@@ -297,7 +304,7 @@ func TestQInDetailReturnsToHistory(t *testing.T) {
 }
 
 func TestEscInDetailReturnsToHistory(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 	m.view = detailView
 
 	m = update(t, m, press("esc"))
@@ -307,7 +314,7 @@ func TestEscInDetailReturnsToHistory(t *testing.T) {
 }
 
 func TestCInDetailCopiesSelectedEntryShowsMessage(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 	m.view = detailView
 	m.history.SetItems(entriesToListItems([]entry{
 		{Date: "2026-06-17", Did: "did work"},
@@ -328,7 +335,7 @@ func TestCInDetailCopiesSelectedEntryShowsMessage(t *testing.T) {
 }
 
 func TestResizeInDetailKeepsRenderedContent(t *testing.T) {
-	m := initialModel(t.TempDir(), nil)
+	m := testModel(t)
 	m.view = historyView
 	m = update(t, m, tea.WindowSizeMsg{Width: 80, Height: 24})
 	m.history.SetItems(entriesToListItems([]entry{

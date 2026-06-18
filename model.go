@@ -45,7 +45,10 @@ func clampMin(value, min int) int {
 }
 
 type model struct {
-	dataDir string
+	dataDir    string
+	configPath string
+
+	config config
 
 	view viewState
 	mode inputMode
@@ -100,7 +103,7 @@ func newViewport() viewport.Model {
 	return v
 }
 
-func initialModel(dataDir string, existing *entry) model {
+func initialModel(dataDir string, config config, configPath string, existing *entry) model {
 	did := newTextArea("What did you do yesterday?")
 	blocked := newTextArea("Is anything blocking you?")
 	tomorrow := newTextArea("What will you do today?")
@@ -117,7 +120,9 @@ func initialModel(dataDir string, existing *entry) model {
 		tomorrow.SetValue(existing.Tomorrow)
 	}
 	return model{
-		dataDir: dataDir,
+		dataDir:    dataDir,
+		configPath: configPath,
+		config:     config,
 
 		view: todayView,
 		mode: normalMode,

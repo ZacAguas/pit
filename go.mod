@@ -25,6 +25,7 @@ require (
 require (
 	charm.land/bubbles/v2 v2.1.0
 	charm.land/glamour/v2 v2.0.1
+	github.com/BurntSushi/toml v1.6.0
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20260525132238-948f4557a654 // indirect
 	github.com/charmbracelet/x/ansi v0.11.7 // indirect
