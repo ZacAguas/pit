@@ -8,6 +8,7 @@ type todayKeyMap struct {
 	History   key.Binding
 	Save      key.Binding
 	Copy      key.Binding
+	Preview   key.Binding
 	Bulletize key.Binding
 	TrackRepo key.Binding
 	Next      key.Binding
@@ -39,6 +40,7 @@ var todayKeys = todayKeyMap{
 	History:   key.NewBinding(key.WithKeys("h"), key.WithHelp("h", "history")),
 	Save:      key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "save")),
 	Copy:      key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "copy")),
+	Preview:   key.NewBinding(key.WithKeys("v"), key.WithHelp("v", "preview")),
 	Bulletize: key.NewBinding(key.WithKeys("b"), key.WithHelp("b", "bulletize")),
 	TrackRepo: key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "track repo")),
 	Next:      key.NewBinding(key.WithKeys("j", "down", "tab"), key.WithHelp("j/↓/tab", "next")),
@@ -65,13 +67,13 @@ var detailKeys = detailKeyMap{
 }
 
 func (k todayKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Next, k.Prev, k.History, k.Save, k.Copy, k.Bulletize, k.TrackRepo, k.Quit}
+	return []key.Binding{k.Next, k.Prev, k.History, k.Save, k.Copy, k.Preview, k.Bulletize, k.TrackRepo, k.Quit}
 }
 
 func (k todayKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Next, k.Prev, k.Did, k.Blocked, k.Tomorrow},
-		{k.Edit, k.History, k.Save, k.Copy, k.Bulletize, k.TrackRepo, k.Quit},
+		{k.Edit, k.History, k.Save, k.Copy, k.Preview, k.Bulletize, k.TrackRepo, k.Quit},
 	}
 }
 

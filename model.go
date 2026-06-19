@@ -72,6 +72,8 @@ type model struct {
 	detail   viewport.Model
 	help     help.Model
 
+	previewingCurrentEntry bool
+
 	focus fieldFocus
 
 	width, height int
@@ -399,6 +401,15 @@ func (m model) updateTodayNormal(keyMsg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			tea.SetClipboard(formatMarkdown(m.currentEntry())),
 			clearMessageAfter(3),
 		)
+	case key.Matches(keyMsg, todayKeys.Preview):
+		var ok bool
+		m, ok = m.renderEntryInDetail(m.currentEntry())
+		if ok {
+			m.previewingCurrentEntry = true
+			m.detail.GotoTop()
+			m.view = detailView
+		}
+		return m, nil
 	case key.Matches(keyMsg, todayKeys.Bulletize):
 		m = m.bulletizeFocusedField()
 	case key.Matches(keyMsg, todayKeys.TrackRepo):
@@ -491,6 +502,7 @@ func (m model) updateHistory(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var ok bool
 			m, ok = m.renderSelectedEntry()
 			if ok {
+				m.previewingCurrentEntry = false
 				m.detail.GotoTop()
 				m.view = detailView
 			}
@@ -511,6 +523,10 @@ func (m model) renderSelectedEntry() (model, bool) {
 		return m, false
 	}
 
+	return m.renderEntryInDetail(e)
+}
+
+func (m model) renderEntryInDetail(e entry) (model, bool) {
 	rendered, err := renderEntryMarkdown(e, m.detail.Width())
 	if err != nil {
 		m.message = "Could not render entry"
@@ -526,14 +542,23 @@ func (m model) updateDetail(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, detailKeys.Back):
-			m.view = historyView
+			if m.previewingCurrentEntry {
+				m.previewingCurrentEntry = false
+				m.view = todayView
+			} else {
+				m.view = historyView
+			}
 			return m, nil
 		case key.Matches(msg, detailKeys.Copy):
-			item := m.history.SelectedItem()
-			e, ok := item.(entry)
-			if !ok {
-				m.message = "No entry selected"
-				return m, clearMessageAfter(3)
+			e := m.currentEntry()
+			if !m.previewingCurrentEntry {
+				item := m.history.SelectedItem()
+				selectedEntry, ok := item.(entry)
+				if !ok {
+					m.message = "No entry selected"
+					return m, clearMessageAfter(3)
+				}
+				e = selectedEntry
 			}
 			m.message = "Copied to clipboard"
 			return m, tea.Batch(

@@ -522,6 +522,64 @@ func TestTrackRepoErrorKeepsUntrackedRepo(t *testing.T) {
 	}
 }
 
+func TestVInTodayPreviewsCurrentEntry(t *testing.T) {
+	m := testModel(t)
+	m = update(t, m, tea.WindowSizeMsg{Width: 80, Height: 24})
+	m.did.SetValue("did work")
+	m.blocked.SetValue("blocked thing")
+	m.tomorrow.SetValue("next thing")
+
+	m = update(t, m, press("v"))
+
+	if m.view != detailView {
+		t.Fatalf("expected %v, got %v", detailView, m.view)
+	}
+	if !m.previewingCurrentEntry {
+		t.Fatal("expected previewingCurrentEntry true")
+	}
+	got := m.detail.View()
+	for _, want := range []string{"Standup", "did", "work", "blocked", "thing", "next"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected preview to contain %q, got %q", want, got)
+		}
+	}
+}
+
+func TestQInTodayPreviewReturnsToToday(t *testing.T) {
+	m := testModel(t)
+	m.view = detailView
+	m.previewingCurrentEntry = true
+
+	m = update(t, m, press("q"))
+
+	if m.view != todayView {
+		t.Fatalf("expected %v, got %v", todayView, m.view)
+	}
+	if m.previewingCurrentEntry {
+		t.Fatal("expected previewingCurrentEntry false")
+	}
+}
+
+func TestCInTodayPreviewCopiesCurrentEntryShowsMessage(t *testing.T) {
+	m := testModel(t)
+	m.view = detailView
+	m.previewingCurrentEntry = true
+	m.did.SetValue("did work")
+
+	next, cmd := m.Update(press("c"))
+	got, ok := next.(model)
+	if !ok {
+		t.Fatalf("expected model, got %T", next)
+	}
+
+	if got.message != "Copied to clipboard" {
+		t.Fatalf("expected copy message, got %q", got.message)
+	}
+	if cmd == nil {
+		t.Fatal("expected command, got nil")
+	}
+}
+
 func TestEnterInHistoryWithSelectedItemOpensDetail(t *testing.T) {
 	m := testModel(t)
 	m.view = historyView
