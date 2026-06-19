@@ -1,18 +1,36 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 var errNoRepoGitEmail = errors.New("no repo git email")
 var errNoGitEmail = errors.New("no git email configured")
 
+const gitCommandTimeout = 5 * time.Second
+
+func gitOutput(args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
+	defer cancel()
+
+	return exec.CommandContext(ctx, "git", args...).Output()
+}
+
+func runGitCommand(args ...string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), gitCommandTimeout)
+	defer cancel()
+
+	return exec.CommandContext(ctx, "git", args...).Run()
+}
+
 // getGlobalGitEmail returns the user's global Git email.
 // This is the lowest-precedence fallback.
 func getGlobalGitEmail() (string, error) {
-	out, err := exec.Command("git", "config", "--global", "user.email").Output()
+	out, err := gitOutput("config", "--global", "user.email")
 	if err != nil {
 		return "", err
 	}
@@ -22,7 +40,7 @@ func getGlobalGitEmail() (string, error) {
 // getRepoGitEmail returns the repo-local Git email only.
 // It intentionally ignores the user's global Git config.
 func getRepoGitEmail(repoPath string) (string, error) {
-	out, err := exec.Command("git", "-C", repoPath, "config", "--local", "user.email").Output()
+	out, err := gitOutput("-C", repoPath, "config", "--local", "user.email")
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) && exitErr.ExitCode() == 1 {
@@ -55,8 +73,7 @@ func emailForRepo(repo repoConfig, fallbackEmail string) (string, error) {
 }
 
 func isInsideGitRepo() (bool, error) {
-	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
-	err := cmd.Run()
+	err := runGitCommand("rev-parse", "--is-inside-work-tree")
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
@@ -68,8 +85,7 @@ func isInsideGitRepo() (bool, error) {
 }
 
 func currentRepoRoot() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
-	out, err := cmd.Output()
+	out, err := gitOutput("rev-parse", "--show-toplevel")
 	if err != nil {
 		return "", err
 	}
@@ -85,8 +101,7 @@ func queryRepoCommits(repo repoConfig, sinceDate string, fallbackEmail string) (
 		return "", errNoGitEmail
 	}
 	// git -C <path> log --since=<date> --author=<email> --pretty=format:%s
-	cmd := exec.Command("git", "-C", repo.Path, "log", "--since="+sinceDate, "--author="+email, "--pretty=format:%s")
-	out, err := cmd.Output()
+	out, err := gitOutput("-C", repo.Path, "log", "--since="+sinceDate, "--author="+email, "--pretty=format:%s")
 	if err != nil {
 		return "", err
 	}
