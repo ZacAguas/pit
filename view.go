@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"strings"
 
 	"charm.land/bubbles/v2/textarea"
@@ -15,14 +16,17 @@ var (
 	textColor   = lipgloss.Color("252")
 	infoColor   = lipgloss.Color("104")
 	warnColor   = lipgloss.Color("178")
+	editColor   = lipgloss.Color("42")
 
-	modeStyle         = lipgloss.NewStyle().Foreground(accentColor).Faint(true)
+	normalModeStyle   = lipgloss.NewStyle().Foreground(infoColor).Bold(true)
+	editModeStyle     = lipgloss.NewStyle().Foreground(editColor).Bold(true)
 	focusedLabelStyle = lipgloss.NewStyle().Foreground(accentColor).Bold(true)
 	dimLabelStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
 	focusedPanel      = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(accentColor).Padding(0, 1)
 	dimPanel          = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(mutedColor).Padding(0, 1)
 	messageStyle      = lipgloss.NewStyle().Foreground(infoColor)
 	warningStyle      = lipgloss.NewStyle().Foreground(warnColor)
+	lineCountStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("244"))
 )
 
 func (m model) View() tea.View {
@@ -48,7 +52,21 @@ func (m model) renderField(field fieldFocus, label string, t textarea.Model) str
 		panelStyle = focusedPanel
 		labelStyle = focusedLabelStyle
 	}
-	return labelStyle.Render(label) + "\n" + panelStyle.Render(t.View())
+	panel := panelStyle.Render(t.View())
+	counter := lineCountStyle.Render(textAreaLineCounter(t, m.focus == field))
+	return labelStyle.Render(label) + "\n" + panel + "\n" + lipgloss.PlaceHorizontal(lipgloss.Width(panel), lipgloss.Right, counter)
+}
+
+func textAreaLineCounter(t textarea.Model, selected bool) string {
+	lineCount := t.LineCount()
+	if !selected {
+		if lineCount == 1 {
+			return "1 line"
+		}
+		return strconv.Itoa(lineCount) + " lines"
+	}
+	currentLine := t.Line() + 1
+	return "line " + strconv.Itoa(currentLine) + "/" + strconv.Itoa(lineCount)
 }
 
 // The main view when launching the app
@@ -61,9 +79,9 @@ func (m model) viewToday() string {
 
 	switch m.mode {
 	case normalMode:
-		s += modeStyle.Render("NORMAL")
+		s += normalModeStyle.Render("NORMAL")
 	case editMode:
-		s += modeStyle.Render("EDIT")
+		s += editModeStyle.Render("EDIT  ")
 	}
 	s += " mode\n\n"
 

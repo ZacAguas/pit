@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/help"
@@ -398,6 +399,8 @@ func (m model) updateTodayNormal(keyMsg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			tea.SetClipboard(formatMarkdown(m.currentEntry())),
 			clearMessageAfter(3),
 		)
+	case key.Matches(keyMsg, todayKeys.Bulletize):
+		m = m.bulletizeFocusedField()
 	case key.Matches(keyMsg, todayKeys.TrackRepo):
 		if m.untrackedRepoPath == "" {
 			return m, nil
@@ -417,6 +420,31 @@ func (m model) updateTodayNormal(keyMsg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 	}
 	return m, nil
+}
+
+func (m model) bulletizeFocusedField() model {
+	switch m.focus {
+	case didField:
+		m.did.SetValue(bulletizeText(m.did.Value()))
+	case blockedField:
+		m.blocked.SetValue(bulletizeText(m.blocked.Value()))
+	case tomorrowField:
+		m.tomorrow.SetValue(bulletizeText(m.tomorrow.Value()))
+	}
+	return m
+}
+
+func bulletizeText(value string) string {
+	lines := strings.Split(value, "\n")
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "- ") || strings.HasPrefix(trimmed, "* ") {
+			lines[i] = trimmed
+			continue
+		}
+		lines[i] = "- " + trimmed
+	}
+	return strings.Join(lines, "\n")
 }
 
 // Reroute msg to focused text area

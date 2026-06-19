@@ -295,6 +295,32 @@ func TestNumberKeysJumpToFields(t *testing.T) {
 	}
 }
 
+func TestBulletizeCurrentField(t *testing.T) {
+	m := testModel(t)
+	m.focus = didField
+	m.did.SetValue("first\n\n- already\nsecond")
+
+	m = update(t, m, press("b"))
+
+	want := "- first\n\n- already\n- second"
+	if got := m.did.Value(); got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestBInEditModeTypesIntoField(t *testing.T) {
+	m := testModel(t)
+	m.mode = editMode
+	m.focus = didField
+	m.did.Focus()
+
+	m = update(t, m, press("b"))
+
+	if got := m.did.Value(); got != "b" {
+		t.Fatalf("expected %q, got %q", "b", got)
+	}
+}
+
 func TestCurrentEntryUsesTextFields(t *testing.T) {
 	m := testModel(t)
 
