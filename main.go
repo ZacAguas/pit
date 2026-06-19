@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -23,6 +24,11 @@ func main() {
 
 	daysBack := flag.Int("days-back", 1, "number of workdays back to load commits from")
 	flag.Parse()
+	if err := validateDaysBack(*daysBack); err != nil {
+		// use fmt instead of log for no timestamp
+		fmt.Fprintf(os.Stderr, "invalid --days-back: %v\n", err)
+		os.Exit(1)
+	}
 
 	configDir, err := getConfigDir()
 	if err != nil {
@@ -73,6 +79,13 @@ func main() {
 	if _, err := p.Run(); err != nil {
 		log.Fatalf("could not start program: %v", err)
 	}
+}
+
+func validateDaysBack(daysBack int) error {
+	if daysBack < 0 {
+		return errors.New("must be 0 or greater")
+	}
+	return nil
 }
 
 func getTodayEntry(dataDir string) (*entry, error) {

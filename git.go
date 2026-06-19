@@ -7,6 +7,7 @@ import (
 )
 
 var errNoRepoGitEmail = errors.New("no repo git email")
+var errNoGitEmail = errors.New("no git email configured")
 
 // getGlobalGitEmail returns the user's global Git email.
 // This is the lowest-precedence fallback.
@@ -79,6 +80,9 @@ func queryRepoCommits(repo repoConfig, sinceDate string, fallbackEmail string) (
 	email, err := emailForRepo(repo, fallbackEmail)
 	if err != nil {
 		return "", err
+	}
+	if email == "" {
+		return "", errNoGitEmail
 	}
 	// git -C <path> log --since=<date> --author=<email> --pretty=format:%s
 	cmd := exec.Command("git", "-C", repo.Path, "log", "--since="+sinceDate, "--author="+email, "--pretty=format:%s")

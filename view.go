@@ -59,12 +59,12 @@ func (m model) viewToday() string {
 		s += messageStyle.Render("Loading commits...") + "\n"
 	}
 
-	if m.message != "" {
-		s += messageStyle.Render(m.message) + "\n"
+	if m.untrackedRepoPath != "" {
+		s += warningStyle.Render("Untracked repo: "+m.untrackedRepoPath) + "\n"
 	}
 
-	if m.untrackedRepoPath != "" {
-		s += warningStyle.Render("Untracked repo: " + m.untrackedRepoPath)
+	if m.message != "" {
+		s += messageStyle.Render(m.message) + "\n"
 	}
 
 	s += "\n\n" + m.help.View(todayKeys)

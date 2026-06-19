@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"time"
 
 	"charm.land/bubbles/v2/help"
@@ -223,7 +224,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.commitWarnings = msg.warnings
 		if len(msg.warnings) > 0 {
-			m.message = "Some commits could not be loaded"
+			m.message = commitWarningMessage(len(msg.warnings))
 			return m, clearMessageAfter(3)
 		}
 		return m, nil
@@ -270,6 +271,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateDetail(msg)
 	}
 	return m, nil
+}
+
+func commitWarningMessage(count int) string {
+	if count == 1 {
+		return "Could not load commits for 1 repo"
+	}
+	return "Could not load commits for " + strconv.Itoa(count) + " repos"
 }
 
 func (m model) updateToday(msg tea.Msg) (tea.Model, tea.Cmd) {

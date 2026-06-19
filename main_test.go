@@ -56,3 +56,15 @@ func TestGetEntryForDateReturnsErrorForMalformedEntry(t *testing.T) {
 		t.Fatalf("expected error, got entry %#v", got)
 	}
 }
+
+func TestValidateDaysBackAllowsZero(t *testing.T) {
+	if err := validateDaysBack(0); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestValidateDaysBackRejectsNegative(t *testing.T) {
+	if err := validateDaysBack(-1); err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}

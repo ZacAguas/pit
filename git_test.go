@@ -72,6 +72,16 @@ func TestQueryRepoCommits(t *testing.T) {
 	}
 }
 
+func TestQueryRepoCommitsReturnsErrorWhenEmailIsEmpty(t *testing.T) {
+	dir := t.TempDir()
+	runGit(t, dir, "init")
+
+	_, err := queryRepoCommits(repoConfig{Path: dir}, "2026-01-01", "")
+	if !errors.Is(err, errNoGitEmail) {
+		t.Fatalf("expected errNoGitEmail, got %v", err)
+	}
+}
+
 func TestEmailForRepoUsesConfigEmailFirst(t *testing.T) {
 	dir := t.TempDir()
 	runGit(t, dir, "init")

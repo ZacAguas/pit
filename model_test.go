@@ -360,9 +360,18 @@ func TestQueryReposCommitsMessageStoresWarnings(t *testing.T) {
 	if len(got.commitWarnings) != 1 {
 		t.Fatalf("expected one warning, got %#v", got.commitWarnings)
 	}
-	want := "Some commits could not be loaded"
+	want := "Could not load commits for 1 repo"
 	if got.message != want {
 		t.Fatalf("expected %q, got %q", want, got.message)
+	}
+}
+
+func TestCommitWarningMessagePluralizesRepos(t *testing.T) {
+	got := commitWarningMessage(2)
+	want := "Could not load commits for 2 repos"
+
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
 	}
 }
 
