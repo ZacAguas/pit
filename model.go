@@ -38,11 +38,26 @@ const (
 const (
 	minViewWidth  = 20
 	minViewHeight = 1
+	viewMargin    = 2
+	viewTopMargin = 2
+	maxViewWidth  = 100
+)
+
+const (
+	minTextAreaHeight = 5
+	maxTextAreaHeight = 12
 )
 
 func clampMin(value, min int) int {
 	if value < min {
 		return min
+	}
+	return value
+}
+
+func clampMax(value, max int) int {
+	if value > max {
+		return max
 	}
 	return value
 }
@@ -211,19 +226,38 @@ func (m model) Init() tea.Cmd {
 func (m model) resizeTextAreas() model {
 	const textareaHorizontalFrame = 4 // left/right border + left/right padding
 
-	width := m.width - textareaHorizontalFrame // could use focusedPanel.GetHorizontalFrameSize() but that couples model to styling
+	width := m.contentWidth() - textareaHorizontalFrame // could use focusedPanel.GetHorizontalFrameSize() but that couples model to styling
 	width = clampMin(width, minViewWidth)
+	height := m.textAreaHeight()
 	m.did.SetWidth(width)
 	m.blocked.SetWidth(width)
 	m.tomorrow.SetWidth(width)
+	m.did.SetHeight(height)
+	m.blocked.SetHeight(height)
+	m.tomorrow.SetHeight(height)
 	return m
+}
+
+func (m model) textAreaHeight() int {
+	const todayViewVerticalChrome = 14
+	const textAreaCount = 3
+
+	height := (m.height - viewTopMargin - todayViewVerticalChrome) / textAreaCount
+	height = clampMin(height, minTextAreaHeight)
+	return clampMax(height, maxTextAreaHeight)
+}
+
+func (m model) contentWidth() int {
+	width := m.width - (viewMargin * 2)
+	width = clampMin(width, minViewWidth)
+	return clampMax(width, maxViewWidth)
 }
 
 func (m model) resizeList() model {
 	const listHorizontalFrame = 4
 	const listVerticalFrame = 2
 
-	width := m.width - listHorizontalFrame
+	width := m.contentWidth() - listHorizontalFrame
 	width = clampMin(width, minViewWidth)
 	height := clampMin(m.height-listVerticalFrame, minViewHeight)
 
@@ -235,7 +269,7 @@ func (m model) resizeViewport() model {
 	const viewportHorizontalFrame = 4
 	const footerHeight = 3
 
-	width := clampMin(m.width-viewportHorizontalFrame, minViewWidth)
+	width := clampMin(m.contentWidth()-viewportHorizontalFrame, minViewWidth)
 	height := clampMin(m.height-footerHeight, minViewHeight)
 	m.detail.SetWidth(width)
 	m.detail.SetHeight(height)
@@ -249,7 +283,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.help.SetWidth(msg.Width)
+		m.help.SetWidth(m.contentWidth())
 		m = m.resizeTextAreas()
 		m = m.resizeList()
 		m = m.resizeViewport()

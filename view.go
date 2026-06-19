@@ -39,10 +39,22 @@ func (m model) View() tea.View {
 	case detailView:
 		s += m.viewDetail()
 	}
+	s = m.frameView(s)
 
 	v := tea.NewView(s)
 	v.AltScreen = true // Fullscreen
 	return v
+}
+
+func (m model) frameView(s string) string {
+	if m.width <= 0 {
+		return s
+	}
+
+	return lipgloss.NewStyle().
+		MarginTop(viewTopMargin).
+		MarginLeft(viewMargin).
+		Render(s)
 }
 
 func (m model) renderField(field fieldFocus, label string, t textarea.Model) string {

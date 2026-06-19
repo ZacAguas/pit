@@ -98,6 +98,23 @@ func TestInitialModelWithoutReposDoesNotLoadCommits(t *testing.T) {
 	}
 }
 
+func TestResizeTextAreasScalesHeightWithTerminal(t *testing.T) {
+	m := testModel(t)
+
+	m = update(t, m, tea.WindowSizeMsg{Width: 100, Height: 24})
+	if got := m.did.Height(); got != minTextAreaHeight {
+		t.Fatalf("expected minimum textarea height %d, got %d", minTextAreaHeight, got)
+	}
+
+	m = update(t, m, tea.WindowSizeMsg{Width: 100, Height: 48})
+	if got := m.did.Height(); got <= minTextAreaHeight {
+		t.Fatalf("expected textarea height to grow beyond %d, got %d", minTextAreaHeight, got)
+	}
+	if m.blocked.Height() != m.did.Height() || m.tomorrow.Height() != m.did.Height() {
+		t.Fatalf("expected textarea heights to match, got did=%d blocked=%d tomorrow=%d", m.did.Height(), m.blocked.Height(), m.tomorrow.Height())
+	}
+}
+
 func TestInitialModelSeedsDidFromPreviousEntry(t *testing.T) {
 	dir := t.TempDir()
 	previous := entry{
