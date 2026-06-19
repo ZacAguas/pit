@@ -3,6 +3,10 @@
 A small TUI for writing standup notes without starting from a blank page.
 
 `pit` opens a focused TUI for writing a daily standup entry, saves entries locally as JSON, renders entries as Markdown, and can prefill your "Yesterday" field from Git commits across tracked repositories.
+<p align="center">
+  <img width="800" alt="pit" src="https://github.com/user-attachments/assets/a1985fe6-c0eb-4bf6-ab70-e4f1c81a310f" />
+</p>
+
 
 ## Why
 
