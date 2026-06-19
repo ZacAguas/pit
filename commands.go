@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -70,6 +71,7 @@ func queryReposCommitsCmd(repos []repoConfig, commitSinceDate string, fallbackEm
 	return func() tea.Msg {
 		var allCommits []string
 		var warnings []string
+		groupCommits := len(repos) > 1
 
 		for _, repo := range repos {
 			commits, err := queryRepoCommits(repo, commitSinceDate, fallbackEmail)
@@ -78,12 +80,23 @@ func queryReposCommitsCmd(repos []repoConfig, commitSinceDate string, fallbackEm
 				continue
 			}
 			if commits != "" {
+				if groupCommits {
+					commits = repoCommitHeading(repo.Path) + "\n" + commits
+				}
 				allCommits = append(allCommits, commits)
 			}
 		}
 		return queryReposCommitsMsg{
-			commits:  strings.Join(allCommits, "\n"),
+			commits:  strings.Join(allCommits, "\n\n"),
 			warnings: warnings,
 		}
 	}
+}
+
+func repoCommitHeading(repoPath string) string {
+	name := filepath.Base(filepath.Clean(repoPath))
+	if name == "." || name == string(filepath.Separator) {
+		name = repoPath
+	}
+	return "### " + name
 }

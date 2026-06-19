@@ -73,22 +73,8 @@ func TestTrackRepoCmdSavesConfigWithRepo(t *testing.T) {
 func TestQueryReposCommitsCmdReturnsCommitsAndWarnings(t *testing.T) {
 	dir := t.TempDir()
 	repoDir := filepath.Join(dir, "repo")
-	if err := os.Mkdir(repoDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	runGit(t, repoDir, "init")
-	runGit(t, repoDir, "config", "user.email", email)
-	runGit(t, repoDir, "config", "user.name", name)
-
-	filePath := filepath.Join(repoDir, file)
-	if err := os.WriteFile(filePath, []byte("test"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
 	const commitMsg = "add test file"
-	runGit(t, repoDir, "add", file)
-	runGit(t, repoDir, "commit", "-m", commitMsg)
+	writeGitRepoWithCommit(t, repoDir, commitMsg)
 
 	cmd := queryReposCommitsCmd(
 		[]repoConfig{
@@ -105,11 +91,86 @@ func TestQueryReposCommitsCmdReturnsCommitsAndWarnings(t *testing.T) {
 		t.Fatalf("expected queryReposCommitsMsg, got %T", msg)
 	}
 
-	wantCommits := "- " + commitMsg
+	wantCommits := "### repo\n- " + commitMsg
 	if got.commits != wantCommits {
 		t.Fatalf("expected commits %q, got %q", wantCommits, got.commits)
 	}
 	if len(got.warnings) != 1 {
 		t.Fatalf("expected one warning, got %#v", got.warnings)
 	}
+}
+
+func TestQueryReposCommitsCmdLeavesSingleRepoCommitsUngrouped(t *testing.T) {
+	dir := t.TempDir()
+	repoDir := filepath.Join(dir, "repo")
+	const commitMsg = "add test file"
+	writeGitRepoWithCommit(t, repoDir, commitMsg)
+
+	cmd := queryReposCommitsCmd(
+		[]repoConfig{{Path: repoDir}},
+		"2026-01-01",
+		"fallback@example.com",
+	)
+
+	msg := cmd()
+	got, ok := msg.(queryReposCommitsMsg)
+	if !ok {
+		t.Fatalf("expected queryReposCommitsMsg, got %T", msg)
+	}
+
+	wantCommits := "- " + commitMsg
+	if got.commits != wantCommits {
+		t.Fatalf("expected commits %q, got %q", wantCommits, got.commits)
+	}
+	if len(got.warnings) != 0 {
+		t.Fatalf("expected no warnings, got %#v", got.warnings)
+	}
+}
+
+func TestQueryReposCommitsCmdGroupsMultipleRepos(t *testing.T) {
+	dir := t.TempDir()
+	repoADir := filepath.Join(dir, "project-a")
+	repoBDir := filepath.Join(dir, "project-b")
+	writeGitRepoWithCommit(t, repoADir, "add api")
+	writeGitRepoWithCommit(t, repoBDir, "fix ui")
+
+	cmd := queryReposCommitsCmd(
+		[]repoConfig{
+			{Path: repoADir},
+			{Path: repoBDir},
+		},
+		"2026-01-01",
+		"fallback@example.com",
+	)
+
+	msg := cmd()
+	got, ok := msg.(queryReposCommitsMsg)
+	if !ok {
+		t.Fatalf("expected queryReposCommitsMsg, got %T", msg)
+	}
+
+	wantCommits := "### project-a\n- add api\n\n### project-b\n- fix ui"
+	if got.commits != wantCommits {
+		t.Fatalf("expected commits %q, got %q", wantCommits, got.commits)
+	}
+}
+
+func writeGitRepoWithCommit(t *testing.T, repoDir string, commitMsg string) {
+	t.Helper()
+
+	if err := os.Mkdir(repoDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	runGit(t, repoDir, "init")
+	runGit(t, repoDir, "config", "user.email", email)
+	runGit(t, repoDir, "config", "user.name", name)
+
+	filePath := filepath.Join(repoDir, file)
+	if err := os.WriteFile(filePath, []byte(commitMsg), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	runGit(t, repoDir, "add", file)
+	runGit(t, repoDir, "commit", "-m", commitMsg)
 }
