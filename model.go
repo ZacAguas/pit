@@ -10,6 +10,7 @@ import (
 	"charm.land/bubbles/v2/textarea"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 type viewState int // the page to show
@@ -99,8 +100,44 @@ func newTextArea(placeholder string) textarea.Model {
 }
 
 func newHistoryList(entries []entry) list.Model {
-	l := list.New(entriesToListItems(entries), list.NewDefaultDelegate(), 0, 0)
+	delegate := list.NewDefaultDelegate()
+	delegate.SetSpacing(0)
+	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.
+		Foreground(textColor).
+		Padding(0, 0, 0, 1)
+	delegate.Styles.NormalDesc = delegate.Styles.NormalDesc.
+		Foreground(lipgloss.Color("245")).
+		Padding(0, 0, 0, 1)
+	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
+		Border(lipgloss.NormalBorder(), false, false, false, true).
+		BorderForeground(accentColor).
+		Foreground(accentColor).
+		Bold(true).
+		Padding(0, 0, 0, 1)
+	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
+		Border(lipgloss.NormalBorder(), false, false, false, true).
+		BorderForeground(accentColor).
+		Foreground(textColor).
+		Padding(0, 0, 0, 1)
+	delegate.Styles.FilterMatch = delegate.Styles.FilterMatch.
+		Foreground(accentColor).
+		Bold(true)
+
+	l := list.New(entriesToListItems(entries), delegate, 0, 0)
 	l.Title = "History"
+	l.Styles.TitleBar = l.Styles.TitleBar.Padding(0, 0, 1, 0)
+	l.Styles.Title = l.Styles.Title.
+		Background(lipgloss.NoColor{}).
+		Foreground(accentColor).
+		Bold(true).
+		Padding(0, 0)
+	l.Styles.StatusBar = l.Styles.StatusBar.
+		Foreground(lipgloss.Color("245")).
+		Padding(0, 0, 1, 0)
+	l.Styles.PaginationStyle = l.Styles.PaginationStyle.PaddingLeft(0)
+	l.Styles.HelpStyle = l.Styles.HelpStyle.Padding(1, 0, 0, 0)
+	l.Styles.ActivePaginationDot = l.Styles.ActivePaginationDot.Foreground(accentColor)
+	l.Styles.InactivePaginationDot = l.Styles.InactivePaginationDot.Foreground(mutedColor)
 	return l
 }
 

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"charm.land/bubbles/v2/list"
 )
 
@@ -21,7 +23,14 @@ func (e entry) Title() string {
 }
 
 func (e entry) Description() string {
-	return e.Did
+	for _, value := range []string{e.Did, e.Blocked, e.Tomorrow} {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		return strings.Split(value, "\n")[0]
+	}
+	return "No details"
 }
 
 func entriesToListItems(entries []entry) []list.Item {

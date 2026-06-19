@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/glamour/v2"
@@ -8,11 +10,19 @@ import (
 )
 
 var (
-	modeStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("48")).Faint(true)
-	focusedPanel = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("48")).Padding(0, 1)
-	dimPanel     = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("240")).Padding(0, 1)
-	messageStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("104"))
-	warningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("178"))
+	accentColor = lipgloss.Color("48")
+	mutedColor  = lipgloss.Color("240")
+	textColor   = lipgloss.Color("252")
+	infoColor   = lipgloss.Color("104")
+	warnColor   = lipgloss.Color("178")
+
+	modeStyle         = lipgloss.NewStyle().Foreground(accentColor).Faint(true)
+	focusedLabelStyle = lipgloss.NewStyle().Foreground(accentColor).Bold(true)
+	dimLabelStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+	focusedPanel      = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(accentColor).Padding(0, 1)
+	dimPanel          = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(mutedColor).Padding(0, 1)
+	messageStyle      = lipgloss.NewStyle().Foreground(infoColor)
+	warningStyle      = lipgloss.NewStyle().Foreground(warnColor)
 )
 
 func (m model) View() tea.View {
@@ -32,11 +42,13 @@ func (m model) View() tea.View {
 }
 
 func (m model) renderField(field fieldFocus, label string, t textarea.Model) string {
-	style := dimPanel
+	panelStyle := dimPanel
+	labelStyle := dimLabelStyle
 	if m.focus == field {
-		style = focusedPanel
+		panelStyle = focusedPanel
+		labelStyle = focusedLabelStyle
 	}
-	return label + "\n" + style.Render(t.View())
+	return labelStyle.Render(label) + "\n" + panelStyle.Render(t.View())
 }
 
 // The main view when launching the app
@@ -55,20 +67,27 @@ func (m model) viewToday() string {
 	}
 	s += " mode\n\n"
 
-	if m.loadingCommits {
-		s += messageStyle.Render("Loading commits...") + "\n"
+	status := m.viewTodayStatus()
+	if status != "" {
+		s += status + "\n"
 	}
 
-	if m.untrackedRepoPath != "" {
-		s += warningStyle.Render("Untracked repo: "+m.untrackedRepoPath) + "\n"
-	}
-
-	if m.message != "" {
-		s += messageStyle.Render(m.message) + "\n"
-	}
-
-	s += "\n\n" + m.help.View(todayKeys)
+	s += "\n" + m.help.View(todayKeys)
 	return s
+}
+
+func (m model) viewTodayStatus() string {
+	var lines []string
+	if m.loadingCommits {
+		lines = append(lines, messageStyle.Render("Loading commits..."))
+	}
+	if m.untrackedRepoPath != "" {
+		lines = append(lines, warningStyle.Render("Untracked repo: "+m.untrackedRepoPath+"  [a] track"))
+	}
+	if m.message != "" {
+		lines = append(lines, messageStyle.Render(m.message))
+	}
+	return strings.Join(lines, "\n")
 }
 
 func (m model) viewHistory() string {
