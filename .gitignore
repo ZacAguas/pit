@@ -1,6 +1,8 @@
 pit
 .pit-test/
 debug.log
+dist/
+demos/
 
 # Binaries for programs and plugins
 *.exe
