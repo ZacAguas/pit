@@ -447,6 +447,12 @@ func (m model) updateTodayEdit(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) updateHistory(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.history.SettingFilter() || m.history.IsFiltered() {
+		var cmd tea.Cmd
+		m.history, cmd = m.history.Update(msg)
+		return m, cmd
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch {

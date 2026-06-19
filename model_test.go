@@ -146,6 +146,43 @@ func TestEscInHistoryReturnsToToday(t *testing.T) {
 	}
 }
 
+func TestQInHistoryFilterDoesNotReturnToToday(t *testing.T) {
+	m := testModel(t)
+	m.view = historyView
+	m.history.SetItems(entriesToListItems([]entry{
+		{Date: "2026-06-17", Did: "did work"},
+	}))
+
+	m = update(t, m, press("/"))
+	m = update(t, m, press("q"))
+
+	if m.view != historyView {
+		t.Fatalf("expected %v, got %v", historyView, m.view)
+	}
+	if got := m.history.FilterValue(); got != "q" {
+		t.Fatalf("expected filter value %q, got %q", "q", got)
+	}
+}
+
+func TestEscInHistoryFilterClearsFilter(t *testing.T) {
+	m := testModel(t)
+	m.view = historyView
+	m.history.SetItems(entriesToListItems([]entry{
+		{Date: "2026-06-17", Did: "did work"},
+	}))
+
+	m = update(t, m, press("/"))
+	m = update(t, m, press("d"))
+	m = update(t, m, press("esc"))
+
+	if m.view != historyView {
+		t.Fatalf("expected %v, got %v", historyView, m.view)
+	}
+	if got := m.history.FilterValue(); got != "" {
+		t.Fatalf("expected empty filter value, got %q", got)
+	}
+}
+
 func TestQQuitsInNormalMode(t *testing.T) {
 	m := testModel(t)
 
