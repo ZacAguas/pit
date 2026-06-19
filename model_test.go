@@ -488,8 +488,9 @@ func TestTrackRepoSuccessUpdatesConfigAndClearsUntrackedRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 	m.untrackedRepoPath = repoPath
+	m.commitSinceDate = "2026-06-18"
 
-	next, _ := m.Update(trackRepoMsg{
+	next, cmd := m.Update(trackRepoMsg{
 		cfg:      config{Repos: []repoConfig{{Path: normalizedRepoPath}}},
 		repoPath: normalizedRepoPath,
 	})
@@ -503,6 +504,31 @@ func TestTrackRepoSuccessUpdatesConfigAndClearsUntrackedRepo(t *testing.T) {
 	}
 	if got.message != "Tracking repo: "+normalizedRepoPath {
 		t.Fatalf("expected tracking message, got %q", got.message)
+	}
+	if !got.loadingCommits {
+		t.Fatal("expected loadingCommits true")
+	}
+	if cmd == nil {
+		t.Fatal("expected command, got nil")
+	}
+}
+
+func TestTrackRepoSuccessWithoutCommitSinceDateDoesNotLoadCommits(t *testing.T) {
+	m := testModel(t)
+	repoPath := filepath.Join(t.TempDir(), "project")
+	normalizedRepoPath, err := normalizeRepoPath(repoPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	next, _ := m.Update(trackRepoMsg{
+		cfg:      config{Repos: []repoConfig{{Path: normalizedRepoPath}}},
+		repoPath: normalizedRepoPath,
+	})
+	got := next.(model)
+
+	if got.loadingCommits {
+		t.Fatal("expected loadingCommits false")
 	}
 }
 

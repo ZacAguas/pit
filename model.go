@@ -298,7 +298,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.config = msg.cfg
 		m.untrackedRepoPath = ""
 		m.message = "Tracking repo: " + msg.repoPath
-		return m, clearMessageAfter(3)
+		cmds := []tea.Cmd{clearMessageAfter(3)}
+		if m.commitSinceDate != "" {
+			// Newly tracked repos should contribute to today's seed immediately,
+			// otherwise tracking feels useful only after restarting the app.
+			m.loadingCommits = true
+			cmds = append(cmds, queryReposCommitsCmd([]repoConfig{{Path: msg.repoPath}}, m.commitSinceDate, m.config.GlobalEmail))
+		}
+		return m, tea.Batch(cmds...)
 	}
 
 	// run viewState-specific update functions
